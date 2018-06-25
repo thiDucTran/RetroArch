@@ -1792,7 +1792,7 @@ int menu_hash_get_help_vn_enum(enum msg_hash_enums msg, char *s, size_t len)
          break;
       case MENU_ENUM_LABEL_SLOWMOTION_HOLD:
          snprintf(s, len,
-               "Hold for slowmotion.");
+               "Giữ để chuyển động chậm.");
          break;
       case MENU_ENUM_LABEL_FRAME_ADVANCE:
          snprintf(s, len,
