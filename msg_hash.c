@@ -82,6 +82,9 @@ int menu_hash_get_help_enum(enum msg_hash_enums msg, char *s, size_t len)
       case RETRO_LANGUAGE_ARABIC:
          ret = menu_hash_get_help_ar_enum(msg, s, len);
          break;
+      case RETRO_LANGUAGE_GREEK:
+         ret = menu_hash_get_help_el_enum(msg, s, len);
+         break;
       default:
          break;
    }
@@ -150,6 +153,9 @@ const char *msg_hash_to_str(enum msg_hash_enums msg)
          break;
       case RETRO_LANGUAGE_ARABIC:
          ret = msg_hash_to_str_ar(msg);
+         break;
+      case RETRO_LANGUAGE_GREEK:
+         ret = msg_hash_to_str_el(msg);
          break;
       default:
          break;
@@ -305,7 +311,7 @@ enum msg_file_type msg_hash_to_file_type(uint32_t hash)
          return FILE_TYPE_SHA1;
       case MENU_VALUE_MD5:
          return FILE_TYPE_MD5;
-#ifdef HAVE_FFMPEG
+#if defined(HAVE_FFMPEG) || defined(HAVE_MPV)
       case MENU_VALUE_FILE_OGM:
          return FILE_TYPE_OGM;
       case MENU_VALUE_FILE_MKV:

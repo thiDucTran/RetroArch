@@ -60,7 +60,7 @@ typedef struct
    gfx_ctx_vulkan_data_t vk;
    unsigned width;
    unsigned height;
-   unsigned swap_interval;
+   int swap_interval;
 #endif
 } android_ctx_data_t;
 
@@ -281,7 +281,8 @@ static bool android_gfx_ctx_set_resize(void *data,
             return false;
          }
 
-         vulkan_acquire_next_image(&and->vk);
+         if (and->vk.created_new_swapchain)
+            vulkan_acquire_next_image(&and->vk);
          and->vk.context.invalid_swapchain = true;
          and->vk.need_new_swapchain        = false;
 #endif
@@ -300,7 +301,7 @@ static bool android_gfx_ctx_set_video_mode(void *data,
       unsigned width, unsigned height,
       bool fullscreen)
 {
-#ifdef HAVE_VULKAN
+#if defined(HAVE_OPENGLES) || defined(HAVE_VLULKAN)
    struct android_app *android_app = (struct android_app*)g_android;
    android_ctx_data_t *and = (android_ctx_data_t*)data;
 #endif
@@ -506,7 +507,7 @@ static void android_gfx_ctx_swap_buffers(void *data, void *data2)
    }
 }
 
-static void android_gfx_ctx_set_swap_interval(void *data, unsigned swap_interval)
+static void android_gfx_ctx_set_swap_interval(void *data, int swap_interval)
 {
    android_ctx_data_t *and  = (android_ctx_data_t*)data;
 

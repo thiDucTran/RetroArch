@@ -191,7 +191,7 @@ int menu_hash_get_help_de_enum(enum msg_hash_enums msg, char *s, size_t len)
                   " \n"
                   "Die Zurückspulfunktion muss eingeschaltet sein.");
             break;
-         case RARCH_MOVIE_RECORD_TOGGLE:
+         case RARCH_BSV_RECORD_TOGGLE:
             snprintf(s, len,
                   "Aufnahme starten/beenden.");
             break;
@@ -593,6 +593,11 @@ int menu_hash_get_help_de_enum(enum msg_hash_enums msg, char *s, size_t len)
                "Anzahl der Sekunden, die gewartet werden soll, \n"
                "bis zur nächsten Belegung gewechselt wird.");
          break;
+      case MENU_ENUM_LABEL_INPUT_BIND_HOLD:
+         snprintf(s, len,
+               "Input bind hold time (in seconds). \n"
+               "Amount of seconds to hold an input to bind it.");
+         break;
       case MENU_ENUM_LABEL_OVERLAY_SCALE:
          snprintf(s, len,
                "Overlay-Skalierung.");
@@ -864,7 +869,7 @@ int menu_hash_get_help_de_enum(enum msg_hash_enums msg, char *s, size_t len)
             const char *lbl = settings ? settings->arrays.audio_resampler : NULL;
 
             if (string_is_equal(lbl, msg_hash_to_str(MENU_ENUM_LABEL_AUDIO_RESAMPLER_DRIVER_SINC)))
-               strlcpy(s, 
+               strlcpy(s,
                         "Windowed-SINC-Implementierung.", len);
             else if (string_is_equal(lbl, msg_hash_to_str(MENU_ENUM_LABEL_AUDIO_RESAMPLER_DRIVER_CC)))
                strlcpy(s,
@@ -1912,7 +1917,7 @@ int menu_hash_get_help_de_enum(enum msg_hash_enums msg, char *s, size_t len)
          snprintf(s, len,
                "Einzelbild-Vorlauf, wenn Inhalt pausiert ist.");
          break;
-      case MENU_ENUM_LABEL_MOVIE_RECORD_TOGGLE:
+      case MENU_ENUM_LABEL_BSV_RECORD_TOGGLE:
          snprintf(s, len,
                "Aufnahme starten/beenden.");
          break;

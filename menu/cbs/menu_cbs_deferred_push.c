@@ -115,8 +115,10 @@ generic_deferred_push(deferred_push_video_filter,                   DISPLAYLIST_
 generic_deferred_push(deferred_push_images,                         DISPLAYLIST_IMAGES)
 generic_deferred_push(deferred_push_audio_dsp_plugin,               DISPLAYLIST_AUDIO_FILTERS)
 generic_deferred_push(deferred_push_cheat_file_load,                DISPLAYLIST_CHEAT_FILES)
+generic_deferred_push(deferred_push_cheat_file_load_append,         DISPLAYLIST_CHEAT_FILES)
 generic_deferred_push(deferred_push_remap_file_load,                DISPLAYLIST_REMAP_FILES)
 generic_deferred_push(deferred_push_record_configfile,              DISPLAYLIST_RECORD_CONFIG_FILES)
+generic_deferred_push(deferred_push_stream_configfile,              DISPLAYLIST_STREAM_CONFIG_FILES)
 generic_deferred_push(deferred_push_input_overlay,                  DISPLAYLIST_OVERLAYS)
 generic_deferred_push(deferred_push_video_font_path,                DISPLAYLIST_FONTS)
 generic_deferred_push(deferred_push_xmb_font_path,                  DISPLAYLIST_FONTS)
@@ -133,12 +135,15 @@ generic_deferred_push(deferred_push_accounts_list,                  DISPLAYLIST_
 generic_deferred_push(deferred_push_driver_settings_list,           DISPLAYLIST_DRIVER_SETTINGS_LIST)
 generic_deferred_push(deferred_push_core_settings_list,             DISPLAYLIST_CORE_SETTINGS_LIST)
 generic_deferred_push(deferred_push_video_settings_list,            DISPLAYLIST_VIDEO_SETTINGS_LIST)
+generic_deferred_push(deferred_push_crt_switchres_settings_list,    DISPLAYLIST_CRT_SWITCHRES_SETTINGS_LIST)
 generic_deferred_push(deferred_push_configuration_settings_list,    DISPLAYLIST_CONFIGURATION_SETTINGS_LIST)
 generic_deferred_push(deferred_push_saving_settings_list,           DISPLAYLIST_SAVING_SETTINGS_LIST)
 generic_deferred_push(deferred_push_mixer_stream_settings_list,     DISPLAYLIST_MIXER_STREAM_SETTINGS_LIST)
 generic_deferred_push(deferred_push_logging_settings_list,          DISPLAYLIST_LOGGING_SETTINGS_LIST)
 generic_deferred_push(deferred_push_frame_throttle_settings_list,   DISPLAYLIST_FRAME_THROTTLE_SETTINGS_LIST)
 generic_deferred_push(deferred_push_rewind_settings_list,           DISPLAYLIST_REWIND_SETTINGS_LIST)
+generic_deferred_push(deferred_push_cheat_details_settings_list,    DISPLAYLIST_CHEAT_DETAILS_SETTINGS_LIST)
+generic_deferred_push(deferred_push_cheat_search_settings_list,     DISPLAYLIST_CHEAT_SEARCH_SETTINGS_LIST)
 generic_deferred_push(deferred_push_onscreen_display_settings_list, DISPLAYLIST_ONSCREEN_DISPLAY_SETTINGS_LIST)
 generic_deferred_push(deferred_push_onscreen_notifications_settings_list, DISPLAYLIST_ONSCREEN_NOTIFICATIONS_SETTINGS_LIST)
 generic_deferred_push(deferred_push_onscreen_overlay_settings_list, DISPLAYLIST_ONSCREEN_OVERLAY_SETTINGS_LIST)
@@ -147,6 +152,7 @@ generic_deferred_push(deferred_push_menu_views_settings_list,       DISPLAYLIST_
 generic_deferred_push(deferred_push_quick_menu_views_settings_list, DISPLAYLIST_QUICK_MENU_VIEWS_SETTINGS_LIST)
 generic_deferred_push(deferred_push_menu_settings_list,             DISPLAYLIST_MENU_SETTINGS_LIST)
 generic_deferred_push(deferred_push_user_interface_settings_list,   DISPLAYLIST_USER_INTERFACE_SETTINGS_LIST)
+generic_deferred_push(deferred_push_power_management_settings_list,   DISPLAYLIST_POWER_MANAGEMENT_SETTINGS_LIST)
 generic_deferred_push(deferred_push_retro_achievements_settings_list,DISPLAYLIST_RETRO_ACHIEVEMENTS_SETTINGS_LIST)
 generic_deferred_push(deferred_push_updater_settings_list,          DISPLAYLIST_UPDATER_SETTINGS_LIST)
 generic_deferred_push(deferred_push_wifi_settings_list,             DISPLAYLIST_WIFI_SETTINGS_LIST)
@@ -155,6 +161,7 @@ generic_deferred_push(deferred_push_lakka_services_list,            DISPLAYLIST_
 generic_deferred_push(deferred_push_user_settings_list,             DISPLAYLIST_USER_SETTINGS_LIST)
 generic_deferred_push(deferred_push_directory_settings_list,        DISPLAYLIST_DIRECTORY_SETTINGS_LIST)
 generic_deferred_push(deferred_push_privacy_settings_list,          DISPLAYLIST_PRIVACY_SETTINGS_LIST)
+generic_deferred_push(deferred_push_midi_settings_list,             DISPLAYLIST_MIDI_SETTINGS_LIST)
 generic_deferred_push(deferred_push_audio_settings_list,            DISPLAYLIST_AUDIO_SETTINGS_LIST)
 generic_deferred_push(deferred_push_audio_mixer_settings_list,      DISPLAYLIST_AUDIO_MIXER_SETTINGS_LIST)
 generic_deferred_push(deferred_push_input_settings_list,            DISPLAYLIST_INPUT_SETTINGS_LIST)
@@ -163,6 +170,8 @@ generic_deferred_push(deferred_push_recording_settings_list,        DISPLAYLIST_
 generic_deferred_push(deferred_push_playlist_settings_list,         DISPLAYLIST_PLAYLIST_SETTINGS_LIST)
 generic_deferred_push(deferred_push_input_hotkey_binds_list,        DISPLAYLIST_INPUT_HOTKEY_BINDS_LIST)
 generic_deferred_push(deferred_push_accounts_cheevos_list,          DISPLAYLIST_ACCOUNTS_CHEEVOS_LIST)
+generic_deferred_push(deferred_push_accounts_twitch_list,           DISPLAYLIST_ACCOUNTS_TWITCH_LIST)
+generic_deferred_push(deferred_push_accounts_youtube_list,          DISPLAYLIST_ACCOUNTS_YOUTUBE_LIST)
 generic_deferred_push(deferred_push_help,                           DISPLAYLIST_HELP_SCREEN_LIST)
 generic_deferred_push(deferred_push_rdb_entry_detail,               DISPLAYLIST_DATABASE_ENTRY)
 generic_deferred_push(deferred_push_rpl_entry_actions,              DISPLAYLIST_HORIZONTAL_CONTENT_ACTIONS)
@@ -176,6 +185,12 @@ generic_deferred_push(deferred_push_core_content_list,              DISPLAYLIST_
 generic_deferred_push(deferred_push_core_content_dirs_list,         DISPLAYLIST_CORE_CONTENT_DIRS)
 generic_deferred_push(deferred_push_core_content_dirs_subdir_list,  DISPLAYLIST_CORE_CONTENT_DIRS_SUBDIR)
 generic_deferred_push(deferred_push_lakka_list,                     DISPLAYLIST_LAKKA)
+#endif
+
+#ifdef HAVE_LAKKA_SWITCH
+generic_deferred_push(deferred_push_switch_gpu_profile,             DISPLAYLIST_SWITCH_GPU_PROFILE)
+generic_deferred_push(deferred_push_switch_backlight_control,       DISPLAYLIST_SWITCH_BACKLIGHT_CONTROL)
+generic_deferred_push(deferred_push_switch_cpu_profile,             DISPLAYLIST_SWITCH_CPU_PROFILE)
 #endif
 
 static int deferred_push_cursor_manager_list_deferred(
@@ -529,18 +544,20 @@ static int general_push(menu_displaylist_info_t *info,
          break;
    }
 
-   (void)settings;
-
    if (settings->bools.multimedia_builtin_mediaplayer_enable ||
          settings->bools.multimedia_builtin_imageviewer_enable)
    {
       struct retro_system_info sysinfo = {0};
 
       (void)sysinfo;
-#ifdef HAVE_FFMPEG
+#if defined(HAVE_FFMPEG) || defined(HAVE_MPV)
       if (settings->bools.multimedia_builtin_mediaplayer_enable)
       {
+#if defined(HAVE_FFMPEG)
          libretro_ffmpeg_retro_get_system_info(&sysinfo);
+#elif defined(HAVE_MPV)
+         libretro_mpv_retro_get_system_info(&sysinfo);
+#endif
          strlcat(newstring2, "|", PATH_MAX_LENGTH * sizeof(char));
          strlcat(newstring2, sysinfo.valid_extensions,
                PATH_MAX_LENGTH * sizeof(char));
@@ -592,6 +609,7 @@ generic_deferred_push_clear_general(deferred_playlist_list, PUSH_DEFAULT, DISPLA
 generic_deferred_push_clear_general(deferred_music_history_list, PUSH_DEFAULT, DISPLAYLIST_MUSIC_HISTORY)
 generic_deferred_push_clear_general(deferred_image_history_list, PUSH_DEFAULT, DISPLAYLIST_IMAGES_HISTORY)
 generic_deferred_push_clear_general(deferred_video_history_list, PUSH_DEFAULT, DISPLAYLIST_VIDEO_HISTORY)
+generic_deferred_push_clear_general(deferred_push_dropdown_box_list, PUSH_DEFAULT, DISPLAYLIST_DROPDOWN_LIST)
 
 static int menu_cbs_init_bind_deferred_push_compare_label(
       menu_file_list_cbs_t *cbs,
@@ -600,6 +618,11 @@ static int menu_cbs_init_bind_deferred_push_compare_label(
    if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_FAVORITES_LIST)))
    {
       BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_favorites_list);
+      return 0;
+   }
+   else if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_DROPDOWN_BOX_LIST)))
+   {
+      BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_dropdown_box_list);
       return 0;
    }
    else if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_BROWSE_URL_LIST)))
@@ -647,6 +670,16 @@ static int menu_cbs_init_bind_deferred_push_compare_label(
       BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_rewind_settings_list);
       return 0;
    }
+   else if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_CHEAT_DETAILS_SETTINGS_LIST)))
+   {
+      BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_cheat_details_settings_list);
+      return 0;
+   }
+   else if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_CHEAT_SEARCH_SETTINGS_LIST)))
+   {
+      BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_cheat_search_settings_list);
+      return 0;
+   }
    else if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_ONSCREEN_DISPLAY_SETTINGS_LIST)))
    {
       BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_onscreen_display_settings_list);
@@ -685,6 +718,11 @@ static int menu_cbs_init_bind_deferred_push_compare_label(
    else if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_USER_INTERFACE_SETTINGS_LIST)))
    {
       BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_user_interface_settings_list);
+      return 0;
+   }
+   else if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_POWER_MANAGEMENT_SETTINGS_LIST)))
+   {
+      BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_power_management_settings_list);
       return 0;
    }
    else if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_RETRO_ACHIEVEMENTS_SETTINGS_LIST)))
@@ -728,6 +766,12 @@ static int menu_cbs_init_bind_deferred_push_compare_label(
    else if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_PRIVACY_SETTINGS_LIST)))
    {
       BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_privacy_settings_list);
+      return 0;
+   }
+
+   else if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_MIDI_SETTINGS_LIST)))
+   {
+      BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_midi_settings_list);
       return 0;
    }
 
@@ -813,6 +857,11 @@ static int menu_cbs_init_bind_deferred_push_compare_label(
       BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_video_settings_list);
    }
    else if (strstr(label,
+            msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_CRT_SWITCHRES_SETTINGS_LIST)))
+   {
+      BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_crt_switchres_settings_list);
+   }
+   else if (strstr(label,
             msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_AUDIO_SETTINGS_LIST)))
    {
       BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_audio_settings_list);
@@ -832,6 +881,23 @@ static int menu_cbs_init_bind_deferred_push_compare_label(
    {
       BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_core_information);
    }
+#ifdef HAVE_LAKKA_SWITCH
+   else if (strstr(label,
+            msg_hash_to_str(MENU_ENUM_LABEL_SWITCH_GPU_PROFILE)))
+   {
+      BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_switch_gpu_profile);
+   }
+   else if (strstr(label,
+            msg_hash_to_str(MENU_ENUM_LABEL_SWITCH_BACKLIGHT_CONTROL)))
+   {
+      BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_switch_backlight_control);
+   }
+   else if (strstr(label,
+            msg_hash_to_str(MENU_ENUM_LABEL_SWITCH_CPU_PROFILE)))
+   {
+      BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_switch_cpu_profile);
+   }
+#endif
    else if (strstr(label,
             msg_hash_to_str(MENU_ENUM_LABEL_SYSTEM_INFORMATION)))
    {
@@ -909,6 +975,16 @@ static int menu_cbs_init_bind_deferred_push_compare_label(
    {
       BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_quick_menu_override_options);
    }
+   else if (strstr(label,
+            msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_ACCOUNTS_YOUTUBE_LIST)))
+   {
+      BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_accounts_youtube_list);
+   }
+   else if (strstr(label,
+            msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_ACCOUNTS_TWITCH_LIST)))
+   {
+      BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_accounts_twitch_list);
+   }
    else
    {
       if (cbs->enum_idx != MSG_UNKNOWN)
@@ -935,6 +1011,12 @@ static int menu_cbs_init_bind_deferred_push_compare_label(
                break;
             case MENU_ENUM_LABEL_DEFERRED_ACCOUNTS_CHEEVOS_LIST:
                BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_accounts_cheevos_list);
+               break;
+            case MENU_ENUM_LABEL_DEFERRED_ACCOUNTS_YOUTUBE_LIST:
+               BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_accounts_youtube_list);
+               break;
+            case MENU_ENUM_LABEL_DEFERRED_ACCOUNTS_TWITCH_LIST:
+               BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_accounts_twitch_list);
                break;
             case MENU_ENUM_LABEL_DEFERRED_ARCHIVE_ACTION_DETECT_CORE:
                BIND_ACTION_DEFERRED_PUSH(cbs, deferred_archive_action_detect_core);
@@ -985,11 +1067,17 @@ static int menu_cbs_init_bind_deferred_push_compare_label(
             case MENU_ENUM_LABEL_CHEAT_FILE_LOAD:
                BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_cheat_file_load);
                break;
+            case MENU_ENUM_LABEL_CHEAT_FILE_LOAD_APPEND:
+               BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_cheat_file_load_append);
+               break;
             case MENU_ENUM_LABEL_REMAP_FILE_LOAD:
                BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_remap_file_load);
                break;
             case MENU_ENUM_LABEL_RECORD_CONFIG:
                BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_record_configfile);
+               break;
+            case MENU_ENUM_LABEL_STREAM_CONFIG:
+               BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_stream_configfile);
                break;
             case MENU_ENUM_LABEL_SHADER_OPTIONS:
                BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_shader_options);
@@ -1158,6 +1246,9 @@ static int menu_cbs_init_bind_deferred_push_compare_label(
             case MENU_ENUM_LABEL_DEFERRED_VIDEO_SETTINGS_LIST:
                BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_video_settings_list);
                break;
+            case MENU_ENUM_LABEL_DEFERRED_CRT_SWITCHRES_SETTINGS_LIST:
+               BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_crt_switchres_settings_list);
+               break;
             case MENU_ENUM_LABEL_DEFERRED_CONFIGURATION_SETTINGS_LIST:
                BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_configuration_settings_list);
                break;
@@ -1241,11 +1332,17 @@ static int menu_cbs_init_bind_deferred_push_compare_label(
             case MENU_LABEL_CHEAT_FILE_LOAD:
                BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_cheat_file_load);
                break;
+            case MENU_LABEL_CHEAT_FILE_LOAD_APPEND:
+               BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_cheat_file_load_append);
+               break;
             case MENU_LABEL_REMAP_FILE_LOAD:
                BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_remap_file_load);
                break;
             case MENU_LABEL_RECORD_CONFIG:
                BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_record_configfile);
+               break;
+            case MENU_LABEL_STREAM_CONFIG:
+               BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_stream_configfile);
                break;
             case MENU_LABEL_NETPLAY:
                BIND_ACTION_DEFERRED_PUSH(cbs, deferred_push_netplay);

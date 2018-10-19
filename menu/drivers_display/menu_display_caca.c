@@ -100,6 +100,8 @@ menu_display_ctx_driver_t menu_display_ctx_caca = {
    menu_display_caca_get_default_tex_coords,
    menu_display_caca_font_init_first,
    MENU_VIDEO_DRIVER_CACA,
-   "menu_display_caca",
-   false
+   "caca",
+   false,
+   NULL,
+   NULL
 };

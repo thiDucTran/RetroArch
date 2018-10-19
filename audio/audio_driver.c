@@ -124,6 +124,7 @@ static const audio_driver_t *audio_drivers[] = {
    &audio_ctr_dsp,
 #endif
 #ifdef SWITCH
+   &audio_switch_thread,
    &audio_switch,
 #endif
    &audio_null,
@@ -888,7 +889,7 @@ void audio_driver_monitor_adjust_system_rates(void)
    timing_skew             = fabs(1.0f - info->fps / video_refresh_rate);
    audio_driver_input      = info->sample_rate;
 
-   if (timing_skew <= max_timing_skew)
+   if (timing_skew <= max_timing_skew && !settings->bools.vrr_runloop_enable)
       audio_driver_input *= (video_refresh_rate / info->fps);
 
    RARCH_LOG("[Audio]: Set audio input rate to: %.2f Hz.\n",

@@ -181,7 +181,7 @@ static bool menu_list_pop_stack(menu_list_t *list,
    list_info.action = 0;
 
    if (animate)
-      menu_driver_ctl(RARCH_MENU_CTL_LIST_CACHE, &list_info);
+      menu_driver_list_cache(&list_info);
 
    if (menu_list->size != 0)
    {
@@ -195,7 +195,7 @@ static bool menu_list_pop_stack(menu_list_t *list,
    }
 
    file_list_pop(menu_list, directory_ptr);
-   menu_driver_ctl(RARCH_MENU_CTL_LIST_SET_SELECTION, menu_list);
+   menu_driver_list_set_selection(menu_list);
    if (animate)
       menu_entries_ctl(MENU_ENTRIES_CTL_SET_REFRESH, &refresh);
 
@@ -421,6 +421,29 @@ int menu_entries_get_core_title(char *s, size_t len)
    const char *core_version       = NULL;
    rarch_system_info_t      *info      = runloop_get_system_info();
    struct retro_system_info    *system = &info->info;
+#if _MSC_VER == 1200
+   const char *extra_version = " msvc6";
+#elif _MSC_VER == 1300
+   const char *extra_version = " msvc2002";
+#elif _MSC_VER == 1310
+   const char *extra_version = " msvc2003";
+#elif _MSC_VER == 1400
+   const char *extra_version = " msvc2005";
+#elif _MSC_VER == 1500
+   const char *extra_version = " msvc2008";
+#elif _MSC_VER == 1600
+   const char *extra_version = " msvc2010";
+#elif _MSC_VER == 1700
+   const char *extra_version = " msvc2012";
+#elif _MSC_VER == 1800
+   const char *extra_version = " msvc2013";
+#elif _MSC_VER == 1900
+   const char *extra_version = " msvc2015";
+#elif _MSC_VER >= 1910 && _MSC_VER < 2000
+   const char *extra_version = " msvc2017";
+#else
+   const char *extra_version = "";
+#endif
 
    if (system)
    {
@@ -438,7 +461,7 @@ int menu_entries_get_core_title(char *s, size_t len)
    if (!core_version)
       core_version = "";
 
-   snprintf(s, len, "%s - %s %s", PACKAGE_VERSION,
+   snprintf(s, len, "%s%s - %s %s", PACKAGE_VERSION, extra_version,
          core_name, core_version);
 
    return 0;
@@ -504,7 +527,7 @@ void menu_entries_append(file_list_t *list, const char *path, const char *label,
    list_info.idx         = idx;
    list_info.entry_type  = type;
 
-   menu_driver_ctl(RARCH_MENU_CTL_LIST_INSERT, &list_info);
+   menu_driver_list_insert(&list_info);
 
    if (list_info.fullpath)
       free(list_info.fullpath);
@@ -552,7 +575,7 @@ void menu_entries_append_enum(file_list_t *list, const char *path,
    list_info.idx         = idx;
    list_info.entry_type  = type;
 
-   menu_driver_ctl(RARCH_MENU_CTL_LIST_INSERT, &list_info);
+   menu_driver_list_insert(&list_info);
 
    if (list_info.fullpath)
       free(list_info.fullpath);
@@ -604,7 +627,7 @@ void menu_entries_prepend(file_list_t *list, const char *path, const char *label
    list_info.idx         = idx;
    list_info.entry_type  = type;
 
-   menu_driver_ctl(RARCH_MENU_CTL_LIST_INSERT, &list_info);
+   menu_driver_list_insert(&list_info);
 
    if (list_info.fullpath)
       free(list_info.fullpath);
@@ -734,6 +757,8 @@ bool menu_entries_ctl(enum menu_entries_ctl_state state, void *data)
          break;
       case MENU_ENTRIES_CTL_SETTINGS_DEINIT:
          menu_setting_free(menu_entries_list_settings);
+         if (menu_entries_list_settings)
+            free(menu_entries_list_settings);
          menu_entries_list_settings = NULL;
          break;
       case MENU_ENTRIES_CTL_SETTINGS_INIT:

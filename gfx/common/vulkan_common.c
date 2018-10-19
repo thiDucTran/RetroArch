@@ -30,11 +30,49 @@
 #include "vulkan_common.h"
 #include "../../libretro-common/include/retro_timers.h"
 #include "../../configuration.h"
+#include "../include/vulkan/vulkan.h"
+#include "../../libretro-common/include/retro_assert.h"
+#include "vksym.h"
+#include "../../libretro-common/include/dynamic/dylib.h"
+#include "../../libretro-common/include/libretro_vulkan.h"
+#include "../../libretro-common/include/retro_math.h"
+#include "../../libretro-common/include/string/stdstring.h"
+
+#define VENDOR_ID_AMD 0x1002
+#define VENDOR_ID_NV 0x10DE
+#define VENDOR_ID_INTEL 0x8086
+
+#ifdef _WIN32
+#define VULKAN_EMULATE_MAILBOX
+#endif
 
 static dylib_t                       vulkan_library;
 static VkInstance                    cached_instance_vk;
 static VkDevice                      cached_device_vk;
 static retro_vulkan_destroy_device_t cached_destroy_device_vk;
+
+//#define WSI_HARDENING_TEST
+#ifdef WSI_HARDENING_TEST
+static unsigned wsi_harden_counter = 0;
+static unsigned wsi_harden_counter2 = 0;
+
+static void trigger_spurious_error_vkresult(VkResult *res)
+{
+   ++wsi_harden_counter;
+   if ((wsi_harden_counter & 15) == 12)
+      *res = VK_ERROR_OUT_OF_DATE_KHR;
+   else if ((wsi_harden_counter & 31) == 13)
+      *res = VK_ERROR_OUT_OF_DATE_KHR;
+   else if ((wsi_harden_counter & 15) == 6)
+      *res = VK_ERROR_SURFACE_LOST_KHR;
+}
+
+static bool trigger_spurious_error(void)
+{
+   ++wsi_harden_counter2;
+   return ((wsi_harden_counter2 & 15) == 9) || ((wsi_harden_counter2 & 15) == 10);
+}
+#endif
 
 #ifdef VULKAN_DEBUG
 static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_cb(
@@ -58,6 +96,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_cb(
       RARCH_ERR("[Vulkan]: Error: %s: %s\n",
             pLayerPrefix, pMessage);
    }
+#if 0
    else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
    {
       RARCH_WARN("[Vulkan]: Warning: %s: %s\n",
@@ -73,10 +112,157 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_cb(
       RARCH_LOG("[Vulkan]: Information: %s: %s\n",
             pLayerPrefix, pMessage);
    }
+#endif
 
    return VK_FALSE;
 }
 #endif
+
+void vulkan_emulated_mailbox_deinit(struct vulkan_emulated_mailbox *mailbox)
+{
+   if (mailbox->thread)
+   {
+      slock_lock(mailbox->lock);
+      mailbox->dead = true;
+      scond_signal(mailbox->cond);
+      slock_unlock(mailbox->lock);
+      sthread_join(mailbox->thread);
+   }
+
+   if (mailbox->lock)
+      slock_free(mailbox->lock);
+   if (mailbox->cond)
+      scond_free(mailbox->cond);
+
+   memset(mailbox, 0, sizeof(*mailbox));
+}
+
+VkResult vulkan_emulated_mailbox_acquire_next_image(struct vulkan_emulated_mailbox *mailbox,
+      unsigned *index)
+{
+   VkResult res;
+   if (mailbox->swapchain == VK_NULL_HANDLE)
+      return VK_ERROR_OUT_OF_DATE_KHR;
+
+   slock_lock(mailbox->lock);
+
+   if (!mailbox->has_pending_request)
+   {
+      mailbox->request_acquire = true;
+      scond_signal(mailbox->cond);
+   }
+
+   mailbox->has_pending_request = true;
+
+   if (mailbox->acquired)
+   {
+      res = mailbox->result;
+      *index = mailbox->index;
+      mailbox->has_pending_request = false;
+      mailbox->acquired = false;
+   }
+   else
+      res = VK_TIMEOUT;
+
+   slock_unlock(mailbox->lock);
+   return res;
+}
+
+VkResult vulkan_emulated_mailbox_acquire_next_image_blocking(
+      struct vulkan_emulated_mailbox *mailbox,
+      unsigned *index)
+{
+   VkResult res;
+   if (mailbox->swapchain == VK_NULL_HANDLE)
+      return VK_ERROR_OUT_OF_DATE_KHR;
+
+   slock_lock(mailbox->lock);
+
+   if (!mailbox->has_pending_request)
+   {
+      mailbox->request_acquire = true;
+      scond_signal(mailbox->cond);
+   }
+
+   mailbox->has_pending_request = true;
+
+   while (!mailbox->acquired)
+      scond_wait(mailbox->cond, mailbox->lock);
+
+   res = mailbox->result;
+   if (res == VK_SUCCESS)
+      *index = mailbox->index;
+   mailbox->has_pending_request = false;
+   mailbox->acquired = false;
+
+   slock_unlock(mailbox->lock);
+   return res;
+}
+
+static void vulkan_emulated_mailbox_loop(void *userdata)
+{
+   VkFence fence;
+   VkFenceCreateInfo info = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+   struct vulkan_emulated_mailbox *mailbox = (struct vulkan_emulated_mailbox*)userdata;
+
+   if (!mailbox)
+      return;
+
+   vkCreateFence(mailbox->device, &info, NULL, &fence);
+
+   for (;;)
+   {
+      slock_lock(mailbox->lock);
+      while (!mailbox->dead && !mailbox->request_acquire)
+         scond_wait(mailbox->cond, mailbox->lock);
+
+      if (mailbox->dead)
+      {
+         slock_unlock(mailbox->lock);
+         break;
+      }
+
+      mailbox->request_acquire = false;
+      slock_unlock(mailbox->lock);
+
+      mailbox->result = vkAcquireNextImageKHR(mailbox->device, mailbox->swapchain, UINT64_MAX,
+            VK_NULL_HANDLE, fence, &mailbox->index);
+
+      if (mailbox->result == VK_SUCCESS)
+         vkWaitForFences(mailbox->device, 1, &fence, true, UINT64_MAX);
+      vkResetFences(mailbox->device, 1, &fence);
+
+      if (mailbox->result == VK_SUCCESS)
+      {
+         slock_lock(mailbox->lock);
+         mailbox->acquired = true;
+         scond_signal(mailbox->cond);
+         slock_unlock(mailbox->lock);
+      }
+   }
+
+   vkDestroyFence(mailbox->device, fence, NULL);
+}
+
+bool vulkan_emulated_mailbox_init(struct vulkan_emulated_mailbox *mailbox,
+   VkDevice device,
+   VkSwapchainKHR swapchain)
+{
+   memset(mailbox, 0, sizeof(*mailbox));
+   mailbox->device = device;
+   mailbox->swapchain = swapchain;
+
+   mailbox->cond = scond_new();
+   if (!mailbox->cond)
+      return false;
+   mailbox->lock = slock_new();
+   if (!mailbox->lock)
+      return false;
+   mailbox->thread = sthread_create(vulkan_emulated_mailbox_loop, mailbox);
+   if (!mailbox->thread)
+      return false;
+   return true;
+}
 
 uint32_t vulkan_find_memory_type(
       const VkPhysicalDeviceMemoryProperties *mem_props,
@@ -154,13 +340,12 @@ void vulkan_copy_staging_to_dynamic(vk_t *vk, VkCommandBuffer cmd,
       struct vk_texture *dynamic,
       struct vk_texture *staging)
 {
-   VkImageCopy region;
+   VkBufferImageCopy region;
 
    retro_assert(dynamic->type == VULKAN_TEXTURE_DYNAMIC);
    retro_assert(staging->type == VULKAN_TEXTURE_STAGING);
 
    vulkan_sync_texture_to_gpu(vk, staging);
-   vulkan_transition_texture(vk, cmd, staging);
 
    /* We don't have to sync against previous TRANSFER,
     * since we observed the completion by fences.
@@ -178,15 +363,14 @@ void vulkan_copy_staging_to_dynamic(vk_t *vk, VkCommandBuffer cmd,
          VK_PIPELINE_STAGE_TRANSFER_BIT);
 
    memset(&region, 0, sizeof(region));
-   region.extent.width = dynamic->width;
-   region.extent.height = dynamic->height;
-   region.extent.depth = 1;
-   region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-   region.srcSubresource.layerCount = 1;
-   region.dstSubresource = region.srcSubresource;
+   region.imageExtent.width           = dynamic->width;
+   region.imageExtent.height          = dynamic->height;
+   region.imageExtent.depth           = 1;
+   region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+   region.imageSubresource.layerCount = 1;
 
-   vkCmdCopyImage(cmd,
-         staging->image, VK_IMAGE_LAYOUT_GENERAL,
+   vkCmdCopyBufferToImage(cmd,
+         staging->buffer,
          dynamic->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
          1, &region);
 
@@ -293,6 +477,7 @@ struct vk_texture vulkan_create_texture(vk_t *vk,
    VkSubresourceLayout layout;
    VkDevice device                      = vk->context->device;
    VkImageCreateInfo info               = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+   VkBufferCreateInfo buffer_info       = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
    VkImageViewCreateInfo view           = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
    VkMemoryAllocateInfo alloc           = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
    VkImageSubresource subresource       = { VK_IMAGE_ASPECT_COLOR_BIT };
@@ -308,6 +493,10 @@ struct vk_texture vulkan_create_texture(vk_t *vk,
    info.extent.height = height;
    info.extent.depth  = 1;
    info.arrayLayers   = 1;
+   info.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
+
+   buffer_info.size        = width * height * vulkan_format_to_bpp(format);
+   buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
    /* For simplicity, always build mipmaps for
     * static textures, samplers can be used to enable it dynamically.
@@ -325,7 +514,7 @@ struct vk_texture vulkan_create_texture(vk_t *vk,
    if (type == VULKAN_TEXTURE_STREAMED)
    {
       VkFormatProperties format_properties;
-      VkFormatFeatureFlags required = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
+      const VkFormatFeatureFlags required = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
          VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
 
       vkGetPhysicalDeviceFormatProperties(
@@ -366,23 +555,33 @@ struct vk_texture vulkan_create_texture(vk_t *vk,
          break;
 
       case VULKAN_TEXTURE_STAGING:
-         info.usage         = VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+         buffer_info.usage  = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+         info.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
          info.tiling        = VK_IMAGE_TILING_LINEAR;
-         info.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
          break;
 
       case VULKAN_TEXTURE_READBACK:
-         info.usage         = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+         buffer_info.usage  = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+         info.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
          info.tiling        = VK_IMAGE_TILING_LINEAR;
-         info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
          break;
    }
 
-   vkCreateImage(device, &info, NULL, &tex.image);
+   if (type != VULKAN_TEXTURE_STAGING && type != VULKAN_TEXTURE_READBACK)
+   {
+      vkCreateImage(device, &info, NULL, &tex.image);
 #if 0
-   vulkan_track_alloc(tex.image);
+      vulkan_track_alloc(tex.image);
 #endif
-   vkGetImageMemoryRequirements(device, tex.image, &mem_reqs);
+      vkGetImageMemoryRequirements(device, tex.image, &mem_reqs);
+   }
+   else
+   {
+      /* Linear staging textures are not guaranteed to be supported,
+       * use buffers instead. */
+      vkCreateBuffer(device, &buffer_info, NULL, &tex.buffer);
+      vkGetBufferMemoryRequirements(device, tex.buffer, &mem_reqs);
+   }
    alloc.allocationSize = mem_reqs.size;
 
    switch (type)
@@ -419,13 +618,14 @@ struct vk_texture vulkan_create_texture(vk_t *vk,
    {
       /* Recreate texture but for STAGING this time ... */
       RARCH_LOG("[Vulkan]: GPU supports linear images as textures, but not DEVICE_LOCAL. Falling back to copy path.\n");
-      type                  = VULKAN_TEXTURE_STAGING;
+      type = VULKAN_TEXTURE_STAGING;
       vkDestroyImage(device, tex.image, NULL);
+      tex.image          = NULL;
+      info.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
 
-      info.usage            = VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-      vkCreateImage(device, &info, NULL, &tex.image);
-
-      vkGetImageMemoryRequirements(device, tex.image, &mem_reqs);
+      buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+      vkCreateBuffer(device, &buffer_info, NULL, &tex.buffer);
+      vkGetBufferMemoryRequirements(device, tex.buffer, &mem_reqs);
 
       alloc.allocationSize  = mem_reqs.size;
       alloc.memoryTypeIndex = vulkan_find_memory_type_fallback(
@@ -448,6 +648,8 @@ struct vk_texture vulkan_create_texture(vk_t *vk,
       vulkan_track_dealloc(old->image);
 #endif
    }
+   if (old && old->buffer != VK_NULL_HANDLE)
+      vkDestroyBuffer(vk->context->device, old->buffer, NULL);
 
    /* We can pilfer the old memory and move it over to the new texture. */
    if (old &&
@@ -477,7 +679,10 @@ struct vk_texture vulkan_create_texture(vk_t *vk,
       memset(old, 0, sizeof(*old));
    }
 
-   vkBindImageMemory(device, tex.image, tex.memory, 0);
+   if (tex.image)
+      vkBindImageMemory(device, tex.image, tex.memory, 0);
+   if (tex.buffer)
+      vkBindBufferMemory(device, tex.buffer, tex.memory, 0);
 
    if (type != VULKAN_TEXTURE_STAGING && type != VULKAN_TEXTURE_READBACK)
    {
@@ -502,8 +707,14 @@ struct vk_texture vulkan_create_texture(vk_t *vk,
    else
       tex.view = VK_NULL_HANDLE;
 
-   if (info.tiling == VK_IMAGE_TILING_LINEAR)
+   if (tex.image && info.tiling == VK_IMAGE_TILING_LINEAR)
       vkGetImageSubresourceLayout(device, tex.image, &subresource, &layout);
+   else if (tex.buffer)
+   {
+      layout.offset   = 0;
+      layout.size     = buffer_info.size;
+      layout.rowPitch = width * vulkan_format_to_bpp(format);
+   }
    else
       memset(&layout, 0, sizeof(layout));
 
@@ -538,7 +749,7 @@ struct vk_texture vulkan_create_texture(vk_t *vk,
    }
    else if (initial && type == VULKAN_TEXTURE_STATIC)
    {
-      VkImageCopy region;
+      VkBufferImageCopy region;
       VkCommandBuffer staging;
       struct vk_texture tmp       = vulkan_create_texture(vk, NULL,
             width, height, format, initial, NULL, VULKAN_TEXTURE_STAGING);
@@ -552,12 +763,6 @@ struct vk_texture vulkan_create_texture(vk_t *vk,
       begin_info.flags            = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
       vkBeginCommandBuffer(staging, &begin_info);
-
-      vulkan_image_layout_transition(vk, staging, tmp.image,
-            VK_IMAGE_LAYOUT_PREINITIALIZED, VK_IMAGE_LAYOUT_GENERAL,
-            VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
-            VK_PIPELINE_STAGE_HOST_BIT,
-            VK_PIPELINE_STAGE_TRANSFER_BIT);
 
       /* If doing mipmapping on upload, keep in general so we can easily do transfers to
        * and transfers from the images without having to
@@ -573,16 +778,14 @@ struct vk_texture vulkan_create_texture(vk_t *vk,
             VK_PIPELINE_STAGE_TRANSFER_BIT);
 
       memset(&region, 0, sizeof(region));
-      region.extent.width              = width;
-      region.extent.height             = height;
-      region.extent.depth              = 1;
-      region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-      region.srcSubresource.layerCount = 1;
-      region.dstSubresource            = region.srcSubresource;
+      region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      region.imageSubresource.layerCount = 1;
+      region.imageExtent.width           = width;
+      region.imageExtent.height          = height;
+      region.imageExtent.depth           = 1;
 
-      vkCmdCopyImage(staging,
-            tmp.image,
-            VK_IMAGE_LAYOUT_GENERAL,
+      vkCmdCopyBufferToImage(staging,
+            tmp.buffer,
             tex.image,
             tex.mipmap ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             1, &region);
@@ -680,12 +883,18 @@ void vulkan_destroy_texture(
 {
    if (tex->mapped)
       vkUnmapMemory(device, tex->memory);
-   vkFreeMemory(device, tex->memory, NULL);
    if (tex->view)
       vkDestroyImageView(device, tex->view, NULL);
-   vkDestroyImage(device, tex->image, NULL);
+   if (tex->image)
+      vkDestroyImage(device, tex->image, NULL);
+   if (tex->buffer)
+      vkDestroyBuffer(device, tex->buffer, NULL);
+   if (tex->memory)
+      vkFreeMemory(device, tex->memory, NULL);
+
 #ifdef VULKAN_DEBUG_TEXTURE_ALLOC
-   vulkan_track_dealloc(tex->image);
+   if (tex->image)
+      vulkan_track_dealloc(tex->image);
 #endif
    memset(tex, 0, sizeof(*tex));
 }
@@ -732,6 +941,9 @@ static void vulkan_write_quad_descriptors(
 
 void vulkan_transition_texture(vk_t *vk, VkCommandBuffer cmd, struct vk_texture *texture)
 {
+   if (!texture->image)
+      return;
+
    /* Transition to GENERAL layout for linear streamed textures.
     * We're using linear textures here, so only
     * GENERAL layout is supported.
@@ -750,14 +962,6 @@ void vulkan_transition_texture(vk_t *vk, VkCommandBuffer cmd, struct vk_texture 
                VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
                VK_PIPELINE_STAGE_HOST_BIT,
                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-         break;
-
-      case VULKAN_TEXTURE_STAGING:
-         vulkan_image_layout_transition(vk, cmd, texture->image,
-               texture->layout, VK_IMAGE_LAYOUT_GENERAL,
-               VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
-               VK_PIPELINE_STAGE_HOST_BIT,
-               VK_PIPELINE_STAGE_TRANSFER_BIT);
          break;
 
       default:
@@ -1342,10 +1546,10 @@ static bool vulkan_find_device_extensions(VkPhysicalDevice gpu,
       const char **exts, unsigned num_exts,
       const char **optional_exts, unsigned num_optional_exts)
 {
-   bool ret = true;
-   VkExtensionProperties *properties = NULL;
    uint32_t property_count;
    unsigned i;
+   bool ret                          = true;
+   VkExtensionProperties *properties = NULL;
 
    if (vkEnumerateDeviceExtensionProperties(gpu, NULL, &property_count, NULL) != VK_SUCCESS)
       return false;
@@ -1519,6 +1723,12 @@ static bool vulkan_context_init_device(gfx_ctx_vulkan_data_t *vk)
          &vk->context.gpu_properties);
    vkGetPhysicalDeviceMemoryProperties(vk->context.gpu,
          &vk->context.memory_properties);
+
+#ifdef VULKAN_EMULATE_MAILBOX
+   /* Win32 windowed mode seems to deal just fine with toggling VSync.
+    * Fullscreen however ... */
+   vk->emulate_mailbox = vk->fullscreen;
+#endif
 
    RARCH_LOG("[Vulkan]: Using GPU: %s\n", vk->context.gpu_properties.deviceName);
 
@@ -1797,7 +2007,10 @@ bool vulkan_context_init(gfx_ctx_vulkan_data_t *vk,
          VK_DEBUG_REPORT_WARNING_BIT_EXT |
          VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
       info.pfnCallback = vulkan_debug_cb;
-      vkCreateDebugReportCallbackEXT(vk->context.instance, &info, NULL, &vk->context.debug_callback);
+
+      if (vk->context.instance)
+         vkCreateDebugReportCallbackEXT(vk->context.instance, &info, NULL,
+               &vk->context.debug_callback);
    }
    RARCH_LOG("[Vulkan]: Enabling Vulkan debug layers.\n");
 #endif
@@ -1885,6 +2098,10 @@ static bool vulkan_create_display_surface(gfx_ctx_vulkan_data_t *vk,
    VkDisplayPlaneAlphaFlagBitsKHR alpha_mode = VK_DISPLAY_PLANE_ALPHA_OPAQUE_BIT_KHR;
    VkDisplaySurfaceCreateInfoKHR create_info = { VK_STRUCTURE_TYPE_DISPLAY_SURFACE_CREATE_INFO_KHR };
    VkDisplayModeKHR best_mode = VK_NULL_HANDLE;
+   /* Monitor index starts on 1, 0 is auto. */
+   unsigned monitor_index = info->monitor_index;
+   unsigned saved_width = *width;
+   unsigned saved_height = *height;
 
    /* We need to decide on GPU here to be able to query support. */
    if (!vulkan_context_init_gpu(vk))
@@ -1926,10 +2143,21 @@ static bool vulkan_create_display_surface(gfx_ctx_vulkan_data_t *vk,
    if (vkGetPhysicalDeviceDisplayPlanePropertiesKHR(vk->context.gpu, &plane_count, planes) != VK_SUCCESS)
       GOTO_FAIL();
 
+   if (monitor_index > display_count)
+   {
+      RARCH_WARN("Monitor index is out of range, using automatic display.\n");
+      monitor_index = 0;
+   }
+
+retry:
    for (dpy = 0; dpy < display_count; dpy++)
    {
-      VkDisplayKHR display = displays[dpy].display;
-      best_mode = VK_NULL_HANDLE;
+      VkDisplayKHR display;
+      if (monitor_index != 0 && (monitor_index - 1) != dpy)
+         continue;
+
+      display    = displays[dpy].display;
+      best_mode  = VK_NULL_HANDLE;
       best_plane = UINT32_MAX;
 
       if (vkGetDisplayModePropertiesKHR(vk->context.gpu,
@@ -2008,6 +2236,18 @@ static bool vulkan_create_display_surface(gfx_ctx_vulkan_data_t *vk,
       }
    }
 out:
+
+   if (best_plane == UINT32_MAX && monitor_index != 0)
+   {
+      RARCH_WARN("Could not find suitable surface for monitor index: %u.\n",
+            monitor_index);
+      RARCH_WARN("Retrying first suitable monitor.\n");
+      monitor_index = 0;
+      best_mode = VK_NULL_HANDLE;
+      *width = saved_width;
+      *height = saved_height;
+      goto retry;
+   }
 
    if (best_mode == VK_NULL_HANDLE)
       GOTO_FAIL();
@@ -2245,11 +2485,43 @@ bool vulkan_surface_create(gfx_ctx_vulkan_data_t *vk,
    return true;
 }
 
+static void vulkan_destroy_swapchain(gfx_ctx_vulkan_data_t *vk)
+{
+   unsigned i;
+
+   vulkan_emulated_mailbox_deinit(&vk->mailbox);
+   if (vk->swapchain != VK_NULL_HANDLE)
+   {
+      vkDeviceWaitIdle(vk->context.device);
+      vkDestroySwapchainKHR(vk->context.device, vk->swapchain, NULL);
+      memset(vk->context.swapchain_images, 0, sizeof(vk->context.swapchain_images));
+      vk->swapchain = VK_NULL_HANDLE;
+      vk->context.has_acquired_swapchain = false;
+   }
+
+   for (i = 0; i < VULKAN_MAX_SWAPCHAIN_IMAGES; i++)
+   {
+      if (vk->context.swapchain_semaphores[i] != VK_NULL_HANDLE)
+         vkDestroySemaphore(vk->context.device,
+               vk->context.swapchain_semaphores[i], NULL);
+      if (vk->context.swapchain_fences[i] != VK_NULL_HANDLE)
+         vkDestroyFence(vk->context.device,
+               vk->context.swapchain_fences[i], NULL);
+   }
+
+   memset(vk->context.swapchain_semaphores, 0, sizeof(vk->context.swapchain_semaphores));
+   memset(vk->context.swapchain_fences, 0, sizeof(vk->context.swapchain_fences));
+}
+
 void vulkan_present(gfx_ctx_vulkan_data_t *vk, unsigned index)
 {
-   VkPresentInfoKHR present        = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-   VkResult result                 = VK_SUCCESS;
-   VkResult err                    = VK_SUCCESS;
+   VkPresentInfoKHR present           = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+   VkResult result                    = VK_SUCCESS;
+   VkResult err                       = VK_SUCCESS;
+
+   if (!vk->context.has_acquired_swapchain)
+      return;
+   vk->context.has_acquired_swapchain = false;
 
    /* We're still waiting for a proper swapchain, so just fake it. */
    if (vk->swapchain == VK_NULL_HANDLE)
@@ -2271,10 +2543,14 @@ void vulkan_present(gfx_ctx_vulkan_data_t *vk, unsigned index)
 #endif
    err = vkQueuePresentKHR(vk->context.queue, &present);
 
+#ifdef WSI_HARDENING_TEST
+   trigger_spurious_error_vkresult(&err);
+#endif
+
    if (err != VK_SUCCESS || result != VK_SUCCESS)
    {
-      RARCH_LOG("[Vulkan]: QueuePresent failed, invalidating swapchain.\n");
-      vk->context.invalid_swapchain = true;
+      RARCH_LOG("[Vulkan]: QueuePresent failed, destroying swapchain.\n");
+      vulkan_destroy_swapchain(vk);
    }
 
 #ifdef HAVE_THREADS
@@ -2285,29 +2561,19 @@ void vulkan_present(gfx_ctx_vulkan_data_t *vk, unsigned index)
 void vulkan_context_destroy(gfx_ctx_vulkan_data_t *vk,
       bool destroy_surface)
 {
-   unsigned i;
-
    if (!vk->context.instance)
       return;
 
    if (vk->context.device)
       vkDeviceWaitIdle(vk->context.device);
-   if (vk->swapchain)
-      vkDestroySwapchainKHR(vk->context.device,
-            vk->swapchain, NULL);
+
+   vulkan_destroy_swapchain(vk);
 
    if (destroy_surface && vk->vk_surface != VK_NULL_HANDLE)
+   {
       vkDestroySurfaceKHR(vk->context.instance,
             vk->vk_surface, NULL);
-
-   for (i = 0; i < VULKAN_MAX_SWAPCHAIN_IMAGES; i++)
-   {
-      if (vk->context.swapchain_semaphores[i] != VK_NULL_HANDLE)
-         vkDestroySemaphore(vk->context.device,
-               vk->context.swapchain_semaphores[i], NULL);
-      if (vk->context.swapchain_fences[i] != VK_NULL_HANDLE)
-         vkDestroyFence(vk->context.device,
-               vk->context.swapchain_fences[i], NULL);
+      vk->vk_surface = VK_NULL_HANDLE;
    }
 
 #ifdef VULKAN_DEBUG
@@ -2351,8 +2617,8 @@ static void vulkan_acquire_clear_fences(gfx_ctx_vulkan_data_t *vk)
          vkDestroyFence(vk->context.device,
                vk->context.swapchain_fences[i], NULL);
          vk->context.swapchain_fences[i] = VK_NULL_HANDLE;
-         vk->context.swapchain_fences_signalled[i] = false;
       }
+      vk->context.swapchain_fences_signalled[i] = false;
    }
 }
 
@@ -2369,10 +2635,26 @@ static void vulkan_acquire_wait_fences(gfx_ctx_vulkan_data_t *vk)
       if (vk->context.swapchain_fences_signalled[index])
          vkWaitForFences(vk->context.device, 1, next_fence, true, UINT64_MAX);
       vkResetFences(vk->context.device, 1, next_fence);
-      vk->context.swapchain_fences_signalled[index] = false;
    }
    else
       vkCreateFence(vk->context.device, &fence_info, NULL, next_fence);
+   vk->context.swapchain_fences_signalled[index] = false;
+}
+
+static void vulkan_create_wait_fences(gfx_ctx_vulkan_data_t *vk)
+{
+   VkFenceCreateInfo fence_info =
+   { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+
+   unsigned i;
+   for (i = 0; i < vk->context.num_swapchain_images; i++)
+   {
+      if (!vk->context.swapchain_fences[i])
+      {
+         vkCreateFence(vk->context.device, &fence_info, NULL,
+               &vk->context.swapchain_fences[i]);
+      }
+   }
 }
 
 void vulkan_acquire_next_image(gfx_ctx_vulkan_data_t *vk)
@@ -2384,8 +2666,10 @@ void vulkan_acquire_next_image(gfx_ctx_vulkan_data_t *vk)
    { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
    VkSemaphoreCreateInfo sem_info =
    { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-   bool is_retrying                = false;
 
+   bool is_retrying = false;
+
+retry:
    if (vk->swapchain == VK_NULL_HANDLE)
    {
       /* We don't have a swapchain, try to create one now. */
@@ -2402,52 +2686,88 @@ void vulkan_acquire_next_image(gfx_ctx_vulkan_data_t *vk)
          vk->context.current_swapchain_index = 0;
          vulkan_acquire_clear_fences(vk);
          vulkan_acquire_wait_fences(vk);
+         vk->context.invalid_swapchain = true;
          return;
       }
    }
 
-retry:
-   vkCreateFence(vk->context.device, &fence_info, NULL, &fence);
+   retro_assert(!vk->context.has_acquired_swapchain);
 
-   err = vkAcquireNextImageKHR(vk->context.device,
-         vk->swapchain, UINT64_MAX,
-         VK_NULL_HANDLE, fence, &vk->context.current_swapchain_index);
+   if (vk->emulating_mailbox)
+   {
+      /* Non-blocking acquire. If we don't get a swapchain frame right away,
+       * just skip rendering to the swapchain this frame, similar to what
+       * MAILBOX would do. */
+      err = vulkan_emulated_mailbox_acquire_next_image(&vk->mailbox, &vk->context.current_swapchain_index);
+      fence = VK_NULL_HANDLE;
+   }
+   else
+   {
+      vkCreateFence(vk->context.device, &fence_info, NULL, &fence);
+      err = vkAcquireNextImageKHR(vk->context.device,
+            vk->swapchain, UINT64_MAX,
+            VK_NULL_HANDLE, fence, &vk->context.current_swapchain_index);
+   }
+
+   if (err == VK_SUCCESS)
+   {
+      if (fence != VK_NULL_HANDLE)
+         vkWaitForFences(vk->context.device, 1, &fence, true, UINT64_MAX);
+      vk->context.has_acquired_swapchain = true;
+   }
+   else
+      vk->context.has_acquired_swapchain = false;
+
+#ifdef WSI_HARDENING_TEST
+   trigger_spurious_error_vkresult(&err);
+#endif
+
+   if (fence != VK_NULL_HANDLE)
+      vkDestroyFence(vk->context.device, fence, NULL);
+
+   if (err == VK_NOT_READY || err == VK_TIMEOUT)
+   {
+      /* Just pretend we have a swapchain index, round-robin style. */
+      vk->context.current_swapchain_index =
+         (vk->context.current_swapchain_index + 1) % vk->context.num_swapchain_images;
+   }
+   else if (err == VK_ERROR_OUT_OF_DATE_KHR)
+   {
+      /* Throw away the old swapchain and try again. */
+      vulkan_destroy_swapchain(vk);
+
+      if (is_retrying)
+      {
+         RARCH_ERR("[Vulkan]: Swapchain is out of date, trying to create new one. Have tried multiple times ...\n");
+         retro_sleep(10);
+      }
+      else
+         RARCH_ERR("[Vulkan]: Swapchain is out of date, trying to create new one.\n");
+      is_retrying = true;
+      vulkan_acquire_clear_fences(vk);
+      goto retry;
+   }
+   else if (err != VK_SUCCESS)
+   {
+      /* We are screwed, don't try anymore. Maybe it will work later. */
+      vulkan_destroy_swapchain(vk);
+      RARCH_ERR("[Vulkan]: Failed to acquire from swapchain (err = %d).\n",
+            (int)err);
+      if (err == VK_ERROR_SURFACE_LOST_KHR)
+         RARCH_ERR("[Vulkan]: Got VK_ERROR_SURFACE_LOST_KHR.\n");
+      /* Force driver to reset swapchain image handles. */
+      vk->context.invalid_swapchain = true;
+      vulkan_acquire_clear_fences(vk);
+      return;
+   }
 
    index = vk->context.current_swapchain_index;
    if (vk->context.swapchain_semaphores[index] == VK_NULL_HANDLE)
+   {
       vkCreateSemaphore(vk->context.device, &sem_info,
             NULL, &vk->context.swapchain_semaphores[index]);
-
-   if (err == VK_SUCCESS)
-      vkWaitForFences(vk->context.device, 1, &fence, true, UINT64_MAX);
-   vkDestroyFence(vk->context.device, fence, NULL);
-
-   vulkan_acquire_wait_fences(vk);
-
-   if (err != VK_SUCCESS)
-   {
-      if (is_retrying)
-      {
-         RARCH_ERR("[Vulkan]: Tried acquring next swapchain image after creating new one, but failed ...\n");
-      }
-      else
-      {
-         RARCH_LOG("[Vulkan]: AcquireNextImage failed, invalidating swapchain.\n");
-         vk->context.invalid_swapchain = true;
-
-         RARCH_LOG("[Vulkan]: AcquireNextImage failed, so trying to recreate swapchain.\n");
-         if (!vulkan_create_swapchain(vk, vk->context.swapchain_width,
-                  vk->context.swapchain_height, vk->context.swap_interval))
-         {
-            RARCH_ERR("[Vulkan]: Failed to create new swapchain.\n");
-         }
-         else
-         {
-            is_retrying = true;
-            goto retry;
-         }
-      }
    }
+   vulkan_acquire_wait_fences(vk);
 }
 
 bool vulkan_create_swapchain(gfx_ctx_vulkan_data_t *vk,
@@ -2470,8 +2790,71 @@ bool vulkan_create_swapchain(gfx_ctx_vulkan_data_t *vk,
    VkPresentModeKHR swapchain_present_mode = VK_PRESENT_MODE_FIFO_KHR;
    settings_t                    *settings = config_get_ptr();
    VkCompositeAlphaFlagBitsKHR composite   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+   VkResult res;
 
    vkDeviceWaitIdle(vk->context.device);
+   vulkan_acquire_clear_fences(vk);
+
+   if (swap_interval == 0 && vk->emulate_mailbox)
+   {
+      swap_interval = 1;
+      vk->emulating_mailbox = true;
+   }
+   else
+      vk->emulating_mailbox = false;
+
+   vk->created_new_swapchain = true;
+   if (vk->swapchain != VK_NULL_HANDLE &&
+         !vk->context.invalid_swapchain &&
+         vk->context.swapchain_width == width &&
+         vk->context.swapchain_height == height &&
+         vk->context.swap_interval == swap_interval)
+   {
+      /* Do not bother creating a swapchain redundantly. */
+      RARCH_LOG("[Vulkan]: Do not need to re-create swapchain.\n");
+      vulkan_create_wait_fences(vk);
+
+      if (vk->emulating_mailbox && vk->mailbox.swapchain == VK_NULL_HANDLE)
+      {
+         vulkan_emulated_mailbox_init(&vk->mailbox, vk->context.device, vk->swapchain);
+         vk->created_new_swapchain = false;
+         return true;
+      }
+      else if (!vk->emulating_mailbox && vk->mailbox.swapchain != VK_NULL_HANDLE)
+      {
+         /* We are tearing down, and entering a state where we are supposed to have
+          * acquired an image, so block until we have acquired. */
+         if (!vk->context.has_acquired_swapchain)
+         {
+            res = vulkan_emulated_mailbox_acquire_next_image_blocking(
+                  &vk->mailbox,
+                  &vk->context.current_swapchain_index);
+         }
+         else
+            res = VK_SUCCESS;
+
+         vulkan_emulated_mailbox_deinit(&vk->mailbox);
+
+         if (res == VK_SUCCESS)
+         {
+            vk->context.has_acquired_swapchain = true;
+            vk->created_new_swapchain = false;
+            return true;
+         }
+         else
+         {
+            vk->context.has_acquired_swapchain = false;
+            /* We failed for some reason, so create a new swapchain. */
+         }
+      }
+      else
+      {
+         vk->created_new_swapchain = false;
+         return true;
+      }
+   }
+
+   vulkan_emulated_mailbox_deinit(&vk->mailbox);
 
    present_mode_count = 0;
    vkGetPhysicalDeviceSurfacePresentModesKHR(
@@ -2561,10 +2944,8 @@ bool vulkan_create_swapchain(gfx_ctx_vulkan_data_t *vk,
    else
       swapchain_size           = surface_properties.currentExtent;
 
-#if 0
-   /* Tests for deferred creation. */
-   static unsigned retry_count = 0;
-   if (++retry_count < 50)
+#ifdef WSI_HARDENING_TEST
+   if (trigger_spurious_error())
    {
       surface_properties.maxImageExtent.width = 0;
       surface_properties.maxImageExtent.height = 0;
@@ -2601,12 +2982,13 @@ bool vulkan_create_swapchain(gfx_ctx_vulkan_data_t *vk,
    RARCH_LOG("[Vulkan]: Using swapchain size %u x %u.\n",
          swapchain_size.width, swapchain_size.height);
 
-   desired_swapchain_images = surface_properties.minImageCount + 1;
+   /* Unless we have other reasons to clamp, we should prefer 3 images.
+    * We hard sync against the swapchain, so if we have 2 images,
+    * we would be unable to overlap CPU and GPU, which can get very slow
+    * for GPU-rendered cores. */
+   desired_swapchain_images = settings->uints.video_max_swapchain_images;
 
-   /* Limit latency. */
-   if (desired_swapchain_images > settings->uints.video_max_swapchain_images)
-      desired_swapchain_images = settings->uints.video_max_swapchain_images;
-
+   /* Clamp images requested to what is supported by the implementation. */
    if (desired_swapchain_images < surface_properties.minImageCount)
       desired_swapchain_images = surface_properties.minImageCount;
 
@@ -2647,6 +3029,14 @@ bool vulkan_create_swapchain(gfx_ctx_vulkan_data_t *vk,
    info.imageUsage             = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
       | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
+#ifdef _WIN32
+   /* On Windows, do not try to reuse the swapchain.
+    * It causes a lot of issues on nVidia for some reason. */
+   info.oldSwapchain = VK_NULL_HANDLE;
+   if (old_swapchain != VK_NULL_HANDLE)
+      vkDestroySwapchainKHR(vk->context.device, old_swapchain, NULL);
+#endif
+
    if (vkCreateSwapchainKHR(vk->context.device,
             &info, NULL, &vk->swapchain) != VK_SUCCESS)
    {
@@ -2654,8 +3044,10 @@ bool vulkan_create_swapchain(gfx_ctx_vulkan_data_t *vk,
       return false;
    }
 
+#ifndef _WIN32
    if (old_swapchain != VK_NULL_HANDLE)
       vkDestroySwapchainKHR(vk->context.device, old_swapchain, NULL);
+#endif
 
    vk->context.swapchain_width  = swapchain_size.width;
    vk->context.swapchain_height = swapchain_size.height;
@@ -2696,8 +3088,13 @@ bool vulkan_create_swapchain(gfx_ctx_vulkan_data_t *vk,
    RARCH_LOG("[Vulkan]: Got %u swapchain images.\n",
          vk->context.num_swapchain_images);
 
-   vulkan_acquire_clear_fences(vk);
+   /* Force driver to reset swapchain image handles. */
    vk->context.invalid_swapchain = true;
+   vk->context.has_acquired_swapchain = false;
+   vulkan_create_wait_fences(vk);
+
+   if (vk->emulating_mailbox)
+      vulkan_emulated_mailbox_init(&vk->mailbox, vk->context.device, vk->swapchain);
 
    return true;
 }

@@ -27,7 +27,27 @@
 #include "core_type.h"
 #include "core.h"
 
+#ifdef HAVE_MENU
+#include "menu/menu_input.h"
+#endif
+
 RETRO_BEGIN_DECLS
+
+#define RETRO_ENVIRONMENT_RETROARCH_START_BLOCK 0x800000
+
+
+#define RETRO_ENVIRONMENT_SET_SAVE_STATE_IN_BACKGROUND (2 | RETRO_ENVIRONMENT_RETROARCH_START_BLOCK)
+                                            /* bool * --
+                                            * Boolean value that tells the front end to save states in the
+                                            * background or not.
+                                            */
+
+#define RETRO_ENVIRONMENT_GET_CLEAR_ALL_THREAD_WAITS_CB (3 | RETRO_ENVIRONMENT_RETROARCH_START_BLOCK)
+                                            /* retro_environment_t * --
+                                            * Provides the callback to the frontend method which will cancel
+                                            * all currently waiting threads.  Used when coordination is needed
+                                            * between the core and the frontend to gracefully stop all threads.
+                                            */
 
 enum rarch_ctl_state
 {
@@ -271,6 +291,18 @@ typedef struct global
          } resolutions;
       } screen;
    } console;
+   /* Settings and/or global states specific to menus */
+#ifdef HAVE_MENU
+   struct
+   {
+      retro_time_t prev_start_time ;
+      retro_time_t noop_press_time ;
+      retro_time_t noop_start_time  ;
+      retro_time_t action_start_time  ;
+      retro_time_t action_press_time ;
+      enum menu_action prev_action ;
+   } menu;
+#endif
 } global_t;
 
 bool rarch_ctl(enum rarch_ctl_state state, void *data);

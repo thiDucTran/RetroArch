@@ -208,8 +208,10 @@ static void menu_display_d3d10_draw_pipeline(menu_display_ctx_draw_t* draw,
             desc.ByteWidth         = ca->coords.vertices * 2 * sizeof(float);
             desc.BindFlags         = D3D10_BIND_VERTEX_BUFFER;
 
-            D3D10_SUBRESOURCE_DATA vertexData = { ca->coords.vertex };
-            D3D10CreateBuffer(d3d10->device, &desc, &vertexData, &d3d10->menu_pipeline_vbo);
+			{
+               D3D10_SUBRESOURCE_DATA vertexData = { ca->coords.vertex };
+               D3D10CreateBuffer(d3d10->device, &desc, &vertexData, &d3d10->menu_pipeline_vbo);
+			}
          }
          D3D10SetVertexBuffer(d3d10->device, 0, d3d10->menu_pipeline_vbo, 2 * sizeof(float), 0);
          draw->coords->vertices = ca->coords.vertices;
@@ -286,6 +288,8 @@ menu_display_ctx_driver_t menu_display_ctx_d3d10 = {
    menu_display_d3d10_get_default_tex_coords,
    menu_display_d3d10_font_init_first,
    MENU_VIDEO_DRIVER_DIRECT3D10,
-   "menu_display_d3d10",
-   true
+   "d3d10",
+   true,
+   NULL,
+   NULL
 };

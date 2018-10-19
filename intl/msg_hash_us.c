@@ -205,7 +205,7 @@ int menu_hash_get_help_us_enum(enum msg_hash_enums msg, char *s, size_t len)
                    " \n"
                    "Rewinding must be enabled.");
              break;
-          case RARCH_MOVIE_RECORD_TOGGLE:
+          case RARCH_BSV_RECORD_TOGGLE:
              snprintf(s, len,
                    "Toggle between recording and not.");
              break;
@@ -609,6 +609,11 @@ int menu_hash_get_help_us_enum(enum msg_hash_enums msg, char *s, size_t len)
                      "Input bind timer timeout (in seconds). \n"
                              "Amount of seconds to wait until proceeding \n"
                              "to the next bind.");
+            break;
+        case MENU_ENUM_LABEL_INPUT_BIND_HOLD:
+            snprintf(s, len,
+               "Input bind hold time (in seconds). \n"
+               "Amount of seconds to hold an input to bind it.");
             break;
         case MENU_ENUM_LABEL_OVERLAY_SCALE:
             snprintf(s, len,
@@ -1176,6 +1181,14 @@ int menu_hash_get_help_us_enum(enum msg_hash_enums msg, char *s, size_t len)
                              "This will take a performance hit, \n"
                              "so it is disabled by default.");
             break;
+        case MENU_ENUM_LABEL_CHEAT_APPLY_AFTER_TOGGLE:
+            snprintf(s, len,
+                     "Apply cheat immediately after toggling.");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_APPLY_AFTER_LOAD:
+            snprintf(s, len,
+                     "Auto-apply cheats when game loads.");
+            break;
         case MENU_ENUM_LABEL_LIBRETRO_DIR_PATH:
             snprintf(s, len,
                      "Core Directory. \n"
@@ -1228,7 +1241,7 @@ int menu_hash_get_help_us_enum(enum msg_hash_enums msg, char *s, size_t len)
             break;
         case MENU_ENUM_LABEL_FASTFORWARD_RATIO:
             snprintf(s, len,
-                     "Fastforward ratio."
+                     "Fastforward ratio.\n"
                              " \n"
                              "The maximum rate at which content will\n"
                              "be run when using fast forward.\n"
@@ -1240,6 +1253,15 @@ int menu_hash_get_help_us_enum(enum msg_hash_enums msg, char *s, size_t len)
                              "the maximum rate will not be exceeded.\n"
                              "Do not rely on this cap to be perfectly \n"
                              "accurate.");
+            break;
+        case MENU_ENUM_LABEL_VRR_RUNLOOP_ENABLE:
+            snprintf(s, len,
+                     "Sync to Exact Content Framerate.\n"
+                             " \n"
+                             "This option is the equivalent of forcing x1 speed\n"
+                             "while still allowing fast forward.\n"
+                             "No deviation from the core requested refresh rate,\n"
+                             "no sound Dynamic Rate Control).");
             break;
         case MENU_ENUM_LABEL_VIDEO_MONITOR_INDEX:
             snprintf(s, len,
@@ -1380,6 +1402,22 @@ int menu_hash_get_help_us_enum(enum msg_hash_enums msg, char *s, size_t len)
                              "frames, you can rewind several frames \n"
                              "at a time, increasing the rewinding \n"
                              "speed.");
+            break;
+        case MENU_ENUM_LABEL_REWIND_BUFFER_SIZE:
+            snprintf(s, len,
+                     "Rewind buffer size (MB).\n"
+                             " \n"
+                             " The amount of memory in MB to reserve \n"
+                             "for rewinding.  Increasing this value \n"
+                             "increases the rewind history length.\n");
+            break;
+        case MENU_ENUM_LABEL_REWIND_BUFFER_SIZE_STEP:
+            snprintf(s, len,
+                     "Rewind buffer size step (MB).\n"
+                             " \n"
+                             " Each time you increase or decrease \n"
+                             "the rewind buffer size value via this \n"
+                             "UI it will change by this amount.\n");
             break;
         case MENU_ENUM_LABEL_SCREENSHOT:
             snprintf(s, len,
@@ -1700,6 +1738,10 @@ int menu_hash_get_help_us_enum(enum msg_hash_enums msg, char *s, size_t len)
             snprintf(s, len,
                      "Shows current date and/or time inside menu.");
             break;
+        case MENU_ENUM_LABEL_TIMEDATE_STYLE:
+           snprintf(s, len,
+              "Style to show the current date and/or time in.");
+           break;
         case MENU_ENUM_LABEL_BATTERY_LEVEL_ENABLE:
             snprintf(s, len,
                      "Shows current battery level inside menu.");
@@ -1924,6 +1966,103 @@ int menu_hash_get_help_us_enum(enum msg_hash_enums msg, char *s, size_t len)
             snprintf(s, len,
                      "Toggle cheat index.\n");
             break;
+        case MENU_ENUM_LABEL_CHEAT_IDX:
+            snprintf(s, len,
+                     "Index position in list.\n");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_ADDRESS_BIT_POSITION:
+            snprintf(s, len,
+                     "Address bitmask when Memory Search Size < 8-bit.\n");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_REPEAT_COUNT:
+            snprintf(s, len,
+                     "The number of times the cheat will be applied.\nUse with the other two Iteration options to affect large areas of memory.");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_REPEAT_ADD_TO_ADDRESS:
+            snprintf(s, len,
+                     "After each 'Number of Iterations' the Memory Address will be increased by this number times the 'Memory Search Size'.");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_REPEAT_ADD_TO_VALUE:
+            snprintf(s, len,
+                     "After each 'Number of Iterations' the Value will be increased by this amount.");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_MATCH_IDX:
+            snprintf(s, len,
+                     "Select the match to view.");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_START_OR_CONT:
+            snprintf(s, len,
+                     "Scan memory to create new cheats");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_START_OR_RESTART:
+            snprintf(s, len,
+                     "Left/Right to change bit-size\n");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_SEARCH_EXACT:
+            snprintf(s, len,
+                     "Left/Right to change value\n");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_SEARCH_LT:
+            snprintf(s, len,
+                     " ");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_SEARCH_GT:
+            snprintf(s, len,
+                     " ");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_SEARCH_EQ:
+            snprintf(s, len,
+                     " ");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_SEARCH_NEQ:
+            snprintf(s, len,
+                     " ");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_SEARCH_EQPLUS:
+            snprintf(s, len,
+                     "Left/Right to change value\n");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_SEARCH_EQMINUS:
+            snprintf(s, len,
+                     "Left/Right to change value\n");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_ADD_MATCHES:
+            snprintf(s, len,
+                     " ");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_VIEW_MATCHES:
+            snprintf(s, len,
+                     " ");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_CREATE_OPTION:
+            snprintf(s, len,
+                     " ");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_DELETE_OPTION:
+            snprintf(s, len,
+                     " ");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_ADD_NEW_TOP:
+            snprintf(s, len,
+                     " ");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_RELOAD_CHEATS:
+            snprintf(s, len,
+                     " ");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_ADD_NEW_BOTTOM:
+            snprintf(s, len,
+                     " ");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_DELETE_ALL:
+            snprintf(s, len,
+                     " ");
+            break;
+        case MENU_ENUM_LABEL_CHEAT_BIG_ENDIAN:
+            snprintf(s, len,
+                     "Big endian    : 258 = 0x0102\n"
+                     "Little endian : 258 = 0x0201");
+            break;
         case MENU_ENUM_LABEL_HOLD_FAST_FORWARD:
             snprintf(s, len,
                      "Hold for fast-forward. Releasing button \n"
@@ -1937,7 +2076,7 @@ int menu_hash_get_help_us_enum(enum msg_hash_enums msg, char *s, size_t len)
             snprintf(s, len,
                      "Frame advance when content is paused.");
             break;
-        case MENU_ENUM_LABEL_MOVIE_RECORD_TOGGLE:
+        case MENU_ENUM_LABEL_BSV_RECORD_TOGGLE:
             snprintf(s, len,
                      "Toggle between recording and not.");
             break;
@@ -2036,6 +2175,30 @@ int menu_hash_get_help_us_enum(enum msg_hash_enums msg, char *s, size_t len)
         case MENU_ENUM_LABEL_VALUE_VIDEO_MESSAGE_COLOR_BLUE:
             snprintf(s, len,
                      "Sets the blue value of the OSD text color. Valid values are between 0 and 255.");
+            break;
+        case MENU_ENUM_LABEL_MIDI_DRIVER:
+            snprintf(s, len,
+                     "MIDI driver to use.");
+            break;
+        case MENU_ENUM_LABEL_MIDI_INPUT:
+            snprintf(s, len,
+                     "Sets the input device (driver specific).\n"
+                     "When set to \"Off\", MIDI input will be disabled.\n"
+                     "Device name can also be typed in.");
+            break;
+        case MENU_ENUM_LABEL_MIDI_OUTPUT:
+            snprintf(s, len,
+                     "Sets the output device (driver specific).\n"
+                     "When set to \"Off\", MIDI output will be disabled.\n"
+                     "Device name can also be typed in.\n"
+                     " \n"
+                     "When MIDI output is enabled and core and game/app support MIDI output,\n"
+                     "some or all sounds (depends on game/app) will be generated by MIDI device.\n"
+                     "In case of \"null\" MIDI driver this means that those sounds won't be audible.");
+            break;
+        case MENU_ENUM_LABEL_MIDI_VOLUME:
+            snprintf(s, len,
+                     "Sets the master volume of the output device.");
             break;
         default:
             if (string_is_empty(s))

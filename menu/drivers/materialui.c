@@ -42,7 +42,7 @@
 
 #include "../menu_driver.h"
 #include "../menu_animation.h"
-#include "../menu_event.h"
+#include "../menu_input.h"
 
 #include "../widgets/menu_input_dialog.h"
 #include "../widgets/menu_osk.h"
@@ -355,6 +355,8 @@ static void materialui_draw_icon(
    draw.y               = height - y - icon_size;
    draw.width           = icon_size;
    draw.height          = icon_size;
+   draw.scale_factor    = scale_factor;
+   draw.rotation        = rotation;
    draw.coords          = &coords;
    draw.matrix_data     = &mymat;
    draw.texture         = texture;
@@ -541,17 +543,20 @@ static void materialui_render_messagebox(materialui_handle_t *mui,
       }
    }
 
-   menu_display_set_alpha(body_bg_color, 1.0);
+   if (body_bg_color)
+   {
+      menu_display_set_alpha(body_bg_color, 1.0);
 
-   menu_display_draw_quad(
-         video_info,
-         x - longest_width / 2.0 -  mui->margin * 2.0,
-         y - line_height   / 2.0 -  mui->margin * 2.0,
-         longest_width +            mui->margin * 4.0,
-         line_height * list->size + mui->margin * 4.0,
-         width,
-         height,
-         &body_bg_color[0]);
+      menu_display_draw_quad(
+            video_info,
+            x - longest_width / 2.0 -  mui->margin * 2.0,
+            y - line_height   / 2.0 -  mui->margin * 2.0,
+            longest_width +            mui->margin * 4.0,
+            line_height * list->size + mui->margin * 4.0,
+            width,
+            height,
+            &body_bg_color[0]);
+   }
 
    /* print each line */
    for (i = 0; i < list->size; i++)
@@ -645,7 +650,6 @@ static void materialui_compute_entries_box(materialui_handle_t* mui, int width)
 static void materialui_render(void *data, bool is_idle)
 {
    menu_animation_ctx_delta_t delta;
-   float delta_time;
    unsigned bottom, width, height, header_height;
    size_t        i             = 0;
    materialui_handle_t *mui    = (materialui_handle_t*)data;
@@ -664,9 +668,7 @@ static void materialui_render(void *data, bool is_idle)
       mui->need_compute = false;
    }
 
-   menu_animation_ctl(MENU_ANIMATION_CTL_DELTA_TIME, &delta_time);
-
-   delta.current = delta_time;
+   delta.current = menu_animation_get_delta_time();
 
    if (menu_animation_get_ideal_delta_time(&delta))
       menu_animation_update(delta.ideal);
@@ -1553,11 +1555,11 @@ static void materialui_frame(void *data, video_frame_info_t *video_info)
    {
       int ticker_limit, value_len;
       char title_buf_msg_tmp[255];
-      char title_buf_msg[255];
+      char title_buf_msg[640];
 
       title_buf_msg_tmp[0] = title_buf_msg[0] = '\0';
 
-      snprintf(title_buf_msg, sizeof(title_buf), "%s (%s)",
+      snprintf(title_buf_msg, sizeof(title_buf_msg), "%s (%s)",
             title_buf, title_msg);
       value_len       = (int)utf8len(title_buf);
       ticker_limit    = (int)((usable_width / mui->glyph_width) - (value_len + 2));
@@ -2069,7 +2071,7 @@ static int materialui_list_push(void *data, void *userdata,
                      msg_hash_to_str(MENU_ENUM_LABEL_VALUE_NO_CORE)))
             {
                entry.enum_idx      = MENU_ENUM_LABEL_CONTENT_SETTINGS;
-               menu_displaylist_ctl(DISPLAYLIST_SETTING_ENUM, &entry);
+               menu_displaylist_setting(&entry);
             }
 
 #ifndef HAVE_DYNAMIC
@@ -2079,39 +2081,39 @@ static int materialui_list_push(void *data, void *userdata,
                if (settings->bools.menu_show_load_core)
                {
                   entry.enum_idx      = MENU_ENUM_LABEL_CORE_LIST;
-                  menu_displaylist_ctl(DISPLAYLIST_SETTING_ENUM, &entry);
+                  menu_displaylist_setting(&entry);
                }
             }
 
             if (system->load_no_content)
             {
                entry.enum_idx      = MENU_ENUM_LABEL_START_CORE;
-               menu_displaylist_ctl(DISPLAYLIST_SETTING_ENUM, &entry);
+               menu_displaylist_setting(&entry);
             }
 
             if (settings->bools.menu_show_load_content)
             {
                entry.enum_idx      = MENU_ENUM_LABEL_LOAD_CONTENT_LIST;
-               menu_displaylist_ctl(DISPLAYLIST_SETTING_ENUM, &entry);
+               menu_displaylist_setting(&entry);
             }
 
             if (settings->bools.menu_content_show_history)
             {
                entry.enum_idx      = MENU_ENUM_LABEL_LOAD_CONTENT_HISTORY;
-               menu_displaylist_ctl(DISPLAYLIST_SETTING_ENUM, &entry);
+               menu_displaylist_setting(&entry);
             }
 
 #if defined(HAVE_NETWORKING)
 #ifdef HAVE_LAKKA
             entry.enum_idx      = MENU_ENUM_LABEL_UPDATE_LAKKA;
-            menu_displaylist_ctl(DISPLAYLIST_SETTING_ENUM, &entry);
+            menu_displaylist_setting(&entry);
 #else
             {
                settings_t *settings      = config_get_ptr();
                if (settings->bools.menu_show_online_updater)
                {
                   entry.enum_idx      = MENU_ENUM_LABEL_ONLINE_UPDATER;
-                  menu_displaylist_ctl(DISPLAYLIST_SETTING_ENUM, &entry);
+                  menu_displaylist_setting(&entry);
                }
             }
 #endif
@@ -2119,42 +2121,45 @@ static int materialui_list_push(void *data, void *userdata,
             if (settings->bools.menu_content_show_netplay)
             {
                entry.enum_idx      = MENU_ENUM_LABEL_NETPLAY;
-               menu_displaylist_ctl(DISPLAYLIST_SETTING_ENUM, &entry);
+               menu_displaylist_setting(&entry);
             }
 #endif
             if (settings->bools.menu_show_information)
             {
                entry.enum_idx      = MENU_ENUM_LABEL_INFORMATION_LIST;
-               menu_displaylist_ctl(DISPLAYLIST_SETTING_ENUM, &entry);
+               menu_displaylist_setting(&entry);
             }
 #ifndef HAVE_DYNAMIC
             entry.enum_idx      = MENU_ENUM_LABEL_RESTART_RETROARCH;
-            menu_displaylist_ctl(DISPLAYLIST_SETTING_ENUM, &entry);
+            menu_displaylist_setting(&entry);
 #endif
             if (settings->bools.menu_show_configurations)
             {
                entry.enum_idx      = MENU_ENUM_LABEL_CONFIGURATIONS_LIST;
-               menu_displaylist_ctl(DISPLAYLIST_SETTING_ENUM, &entry);
+               menu_displaylist_setting(&entry);
             }
 
             if (settings->bools.menu_show_help)
             {
                entry.enum_idx      = MENU_ENUM_LABEL_HELP_LIST;
-               menu_displaylist_ctl(DISPLAYLIST_SETTING_ENUM, &entry);
+               menu_displaylist_setting(&entry);
             }
 #if !defined(IOS)
             entry.enum_idx      = MENU_ENUM_LABEL_QUIT_RETROARCH;
-            menu_displaylist_ctl(DISPLAYLIST_SETTING_ENUM, &entry);
+            menu_displaylist_setting(&entry);
 #endif
 #if defined(HAVE_LAKKA)
             if (settings->bools.menu_show_reboot)
             {
                entry.enum_idx      = MENU_ENUM_LABEL_REBOOT;
-               menu_displaylist_ctl(DISPLAYLIST_SETTING_ENUM, &entry);
+               menu_displaylist_setting(&entry);
             }
 
-            entry.enum_idx      = MENU_ENUM_LABEL_SHUTDOWN;
-            menu_displaylist_ctl(DISPLAYLIST_SETTING_ENUM, &entry);
+            if (settings->bools.menu_show_shutdown)
+            {
+               entry.enum_idx      = MENU_ENUM_LABEL_SHUTDOWN;
+               menu_displaylist_setting(&entry);
+            }
 #endif
             info->need_push    = true;
             ret = 0;
@@ -2679,6 +2684,8 @@ static void materialui_list_insert(void *userdata,
                   ||
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_PRIVACY_SETTINGS))
                   ||
+                  string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_MIDI_SETTINGS))
+                  ||
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_MENU_VIEWS_SETTINGS))
                   ||
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_QUICK_MENU_VIEWS_SETTINGS))
@@ -2742,7 +2749,7 @@ static void materialui_list_clear(file_list_t *list)
       subject.count = 2;
       subject.data  = subjects;
 
-      menu_animation_ctl(MENU_ANIMATION_CTL_KILL_BY_SUBJECT, &subject);
+      menu_animation_kill_by_subject(&subject);
 
       file_list_free_userdata(list, i);
    }

@@ -31,6 +31,7 @@
 #include "../../driver.h"
 #include "../../verbosity.h"
 #include "../../configuration.h"
+#include "../../retroarch.h"
 
 #include "wiiu/wiiu_dbg.h"
 
@@ -420,20 +421,17 @@ static bool d3d12_gfx_set_shader(void* data, enum rarch_shader_type type, const 
 #endif
          static const char vs_ext[] = ".vs.hlsl";
          static const char ps_ext[] = ".ps.hlsl";
-         char              vs_path[PATH_MAX_LENGTH];
-         char              ps_path[PATH_MAX_LENGTH];
+         char              vs_path[PATH_MAX_LENGTH] = {0};
+         char              ps_path[PATH_MAX_LENGTH] = {0};
          const char*       slang_path = d3d12->shader_preset->pass[i].source.path;
          const char*       vs_src     = d3d12->shader_preset->pass[i].source.string.vertex;
          const char*       ps_src     = d3d12->shader_preset->pass[i].source.string.fragment;
          int               base_len   = strlen(slang_path) - strlen(".slang");
 
-         if (base_len <= 0)
-            base_len = strlen(slang_path);
-
-         strncpy(vs_path, slang_path, base_len);
-         strncpy(ps_path, slang_path, base_len);
-         strncpy(vs_path + base_len, vs_ext, sizeof(vs_ext));
-         strncpy(ps_path + base_len, ps_ext, sizeof(ps_ext));
+         strlcpy(vs_path, slang_path, sizeof(vs_path));
+         strlcpy(ps_path, slang_path, sizeof(ps_path));
+         strlcat(vs_path, vs_ext, sizeof(vs_path));
+         strlcat(ps_path, ps_ext, sizeof(ps_path));
 
          if (!d3d_compile(vs_src, 0, vs_path, "main", "vs_5_0", &vs_code))
             save_hlsl = true;
@@ -974,10 +972,10 @@ d3d12_gfx_init(const video_info_t* video, const input_driver_t** input, void** i
 
    if (settings->bools.video_shader_enable)
    {
-      const char* ext = path_get_extension(settings->paths.path_shader);
+      const char* ext = path_get_extension(retroarch_get_shader_preset());
 
-      if (ext && !strcmp(ext, "slangp"))
-         d3d12_gfx_set_shader(d3d12, RARCH_SHADER_SLANG, settings->paths.path_shader);
+      if (ext && string_is_equal(ext, "slangp"))
+         d3d12_gfx_set_shader(d3d12, RARCH_SHADER_SLANG, retroarch_get_shader_preset());
    }
 
    return d3d12;

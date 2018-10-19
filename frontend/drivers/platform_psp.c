@@ -288,6 +288,9 @@ static void frontend_psp_init(void *data)
 
 #ifdef VITA
    scePowerSetArmClockFrequency(444);
+   scePowerSetBusClockFrequency(222);
+   scePowerSetGpuClockFrequency(222);
+   scePowerSetGpuXbarClockFrequency(166);
    sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
 #else
    (void)data;
@@ -468,6 +471,11 @@ static int frontend_psp_parse_drive_list(void *data, bool load_content)
          msg_hash_to_str(MENU_ENUM_LABEL_FILE_DETECT_CORE_LIST_PUSH_DIR),
          enum_idx,
          FILE_TYPE_DIRECTORY, 0, 0);
+   menu_entries_append_enum(list,
+         "imc0:/",
+         msg_hash_to_str(MENU_ENUM_LABEL_FILE_DETECT_CORE_LIST_PUSH_DIR),
+         enum_idx,
+         FILE_TYPE_DIRECTORY, 0, 0);
 #else
    menu_entries_append_enum(list,
          "ms0:/",
@@ -520,6 +528,7 @@ frontend_ctx_driver_t frontend_ctx_psp = {
    NULL,                         /* detach_console */
    NULL,                         /* watch_path_for_changes */
    NULL,                         /* check_for_path_changes */
+   NULL,                         /* set_sustained_performance_mode */
 #ifdef VITA
    "vita",
 #else

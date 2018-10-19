@@ -95,6 +95,8 @@ enum gfx_ctx_api
    GFX_CTX_DIRECT3D12_API,
    GFX_CTX_OPENVG_API,
    GFX_CTX_VULKAN_API,
+   GFX_CTX_SIXEL_API,
+   GFX_CTX_METAL_API,
    GFX_CTX_GDI_API,
    GFX_CTX_GX_API,
    GFX_CTX_GX2_API
@@ -116,7 +118,8 @@ enum display_flags
    GFX_CTX_FLAGS_CUSTOMIZABLE_SWAPCHAIN_IMAGES,
    GFX_CTX_FLAGS_HARD_SYNC,
    GFX_CTX_FLAGS_BLACK_FRAME_INSERTION,
-   GFX_CTX_FLAGS_MENU_FRAME_FILTERING
+   GFX_CTX_FLAGS_MENU_FRAME_FILTERING,
+   GFX_CTX_FLAGS_ADAPTIVE_VSYNC
 };
 
 enum shader_uniform_type
@@ -352,7 +355,7 @@ typedef struct video_info
     */
    unsigned height;
 
-   unsigned swap_interval;
+   int swap_interval;
 
 #ifdef GEKKO
    bool vfilter;
@@ -406,7 +409,6 @@ typedef struct video_frame_info
    bool black_frame_insertion;
    bool hard_sync;
    bool fps_show;
-   bool crt_switch_resolution; 
    bool statistics_show;
    bool framecount_show;
    bool scale_integer;
@@ -424,14 +426,17 @@ typedef struct video_frame_info
    bool runloop_is_paused;
    bool is_perfcnt_enable;
    bool menu_is_alive;
+   bool msg_bgcolor_enable;
 
    int custom_vp_x;
    int custom_vp_y;
+   int crt_switch_center_adjust;
 
    unsigned hard_sync_frames;
    unsigned aspect_ratio_idx;
    unsigned max_swapchain_images;
    unsigned monitor_index;
+   unsigned crt_switch_resolution; 
    unsigned crt_switch_resolution_super; 
    unsigned width;
    unsigned height;
@@ -488,13 +493,13 @@ typedef struct video_frame_info
       float *value);
    bool (*cb_set_resize)(void*, unsigned, unsigned);
 
-   void (*cb_shader_use)(void *data, void *shader_data, unsigned index, bool set_active);
    bool (*cb_set_mvp)(void *data, void *shader_data,
          const void *mat_data);
 
    void *context_data;
    void *shader_data;
    void *userdata;
+   const shader_backend_t *shader_driver;
 } video_frame_info_t;
 
 typedef void (*update_window_title_cb)(void*, void*);
@@ -520,7 +525,7 @@ typedef struct gfx_ctx_driver
          unsigned major, unsigned minor);
 
    /* Sets the swap interval. */
-   void (*swap_interval)(void *data, unsigned);
+   void (*swap_interval)(void *data, int);
 
    /* Sets video mode. Creates a window, etc. */
    bool (*set_video_mode)(void*, video_frame_info_t *video_info, unsigned, unsigned, bool);
@@ -1081,7 +1086,7 @@ void video_driver_frame(const void *data, unsigned width,
  * viewport info.
  **/
 bool video_driver_translate_coord_viewport(
-      void *data,
+      struct video_viewport *vp,
       int mouse_x, int mouse_y,
       int16_t *res_x, int16_t *res_y, int16_t *res_screen_x,
       int16_t *res_screen_y);
@@ -1121,8 +1126,6 @@ void video_driver_set_threaded(bool val);
 void video_driver_get_status(uint64_t *frame_count, bool * is_alive,
       bool *is_focused);
 
-void video_driver_set_resize(unsigned width, unsigned height);
-
 /**
  * video_context_driver_init_first:
  * @data                    : Input data.
@@ -1137,10 +1140,10 @@ void video_driver_set_resize(unsigned width, unsigned height);
  *
  * Returns: graphics context driver if found, otherwise NULL.
  **/
-const gfx_ctx_driver_t *video_context_driver_init_first(void *data, const char *ident,
-      enum gfx_ctx_api api, unsigned major, unsigned minor, bool hw_render_ctx);
-
-bool video_context_driver_check_window(gfx_ctx_size_t *size_data);
+const gfx_ctx_driver_t *video_context_driver_init_first(
+      void *data, const char *ident,
+      enum gfx_ctx_api api, unsigned major, unsigned minor,
+      bool hw_render_ctx, void **ctx_data);
 
 bool video_context_driver_find_prev_driver(void);
 
@@ -1164,7 +1167,7 @@ void video_context_driver_destroy(void);
 
 bool video_context_driver_get_video_output_size(gfx_ctx_size_t *size_data);
 
-bool video_context_driver_swap_interval(unsigned *interval);
+bool video_context_driver_swap_interval(int *interval);
 
 bool video_context_driver_get_proc_address(gfx_ctx_proc_address_t *proc);
 
@@ -1178,15 +1181,7 @@ bool video_context_driver_get_video_size(gfx_ctx_mode_t *mode_info);
 
 bool video_context_driver_get_refresh_rate(float *refresh_rate);
 
-bool video_context_driver_get_context_data(void *data);
-
 bool video_context_driver_show_mouse(bool *bool_data);
-
-void video_context_driver_set_data(void *data);
-
-bool video_driver_get_flags(gfx_ctx_flags_t *flags);
-
-bool video_context_driver_get_flags(gfx_ctx_flags_t *flags);
 
 bool video_context_driver_set_flags(gfx_ctx_flags_t *flags);
 
@@ -1210,9 +1205,9 @@ bool video_shader_driver_direct_get_current_shader(video_shader_ctx_t *shader);
 
 bool video_shader_driver_deinit(void);
 
-void video_shader_driver_set_parameter(void *data);
+void video_shader_driver_set_parameter(struct uniform_info *param);
 
-void video_shader_driver_set_parameters(void *data);
+void video_shader_driver_set_parameters(video_shader_ctx_params_t *params);
 
 bool video_shader_driver_init_first(void);
 
@@ -1234,7 +1229,7 @@ bool video_shader_driver_filter_type(video_shader_ctx_filter_t *filter);
 
 bool video_shader_driver_compile_program(struct shader_program_info *program_info);
 
-void video_shader_driver_use(void *data);
+void video_shader_driver_use(video_shader_ctx_info_t *shader_info);
 
 bool video_shader_driver_wrap_type(video_shader_ctx_wrap_t *wrap);
 
@@ -1244,8 +1239,14 @@ extern bool (*video_driver_cb_has_focus)(void);
 
 bool video_driver_started_fullscreen(void);
 
+bool video_driver_is_threaded(void);
+
+bool video_driver_get_all_flags(gfx_ctx_flags_t *flags,
+      enum display_flags flag);
+
 extern video_driver_t video_gl;
 extern video_driver_t video_vulkan;
+extern video_driver_t video_metal;
 extern video_driver_t video_psp1;
 extern video_driver_t video_vita2d;
 extern video_driver_t video_ctr;
@@ -1271,6 +1272,7 @@ extern video_driver_t video_xshm;
 extern video_driver_t video_caca;
 extern video_driver_t video_gdi;
 extern video_driver_t video_vga;
+extern video_driver_t video_sixel;
 extern video_driver_t video_null;
 
 extern const gfx_ctx_driver_t gfx_ctx_osmesa;
@@ -1292,6 +1294,8 @@ extern const gfx_ctx_driver_t gfx_ctx_emscripten;
 extern const gfx_ctx_driver_t gfx_ctx_opendingux_fbdev;
 extern const gfx_ctx_driver_t gfx_ctx_khr_display;
 extern const gfx_ctx_driver_t gfx_ctx_gdi;
+extern const gfx_ctx_driver_t gfx_ctx_sixel;
+extern const gfx_ctx_driver_t switch_ctx;
 extern const gfx_ctx_driver_t gfx_ctx_null;
 
 

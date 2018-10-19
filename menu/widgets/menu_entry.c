@@ -54,6 +54,8 @@ enum menu_entry_type menu_entry_get_type(uint32_t i)
             return MENU_ENTRY_INT;
          case ST_UINT:
             return MENU_ENTRY_UINT;
+         case ST_SIZE:
+            return MENU_ENTRY_SIZE;
          case ST_FLOAT:
             return MENU_ENTRY_FLOAT;
          case ST_PATH:
@@ -362,7 +364,7 @@ void menu_entry_get(menu_entry_t *entry, size_t stack_idx,
 
       if (cbs->action_sublabel)
       {
-         char tmp[255];
+         char tmp[512];
          tmp[0] = '\0';
 
          cbs->action_sublabel(list,

@@ -1,4 +1,4 @@
-/* CRT SwitchRes Core 
+/* CRT SwitchRes Core
  * Copyright (C) 2018 Alphanu / Ben Templeman.
  *
  * RetroArch - A frontend for libretro.
@@ -15,7 +15,7 @@
  *
  *  You should have received a copy of the GNU General Public License along with RetroArch.
  *  If not, see <http://www.gnu.org/licenses/>.
-*/
+ */
 
 #ifndef __VIDEO_CRT_SWITCH_H__
 #define __VIDEO_CRT_SWITCH_H__
@@ -27,7 +27,7 @@
 
 RETRO_BEGIN_DECLS
 
-void crt_switch_res_core(unsigned width, unsigned height, float hz);
+void crt_switch_res_core(unsigned width, unsigned height, float hz, unsigned crt_mode, int crt_switch_center_adjust);
 
 void crt_aspect_ratio_switch(unsigned width, unsigned height);
 

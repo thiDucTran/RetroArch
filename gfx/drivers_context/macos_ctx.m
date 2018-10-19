@@ -1,9 +1,17 @@
-//
-//  cocoa_ctx.m
-//  RetroArch
-//
-//  Created by Stuart Carnie on 5/10/18.
-//
+/*  RetroArch - A frontend for libretro.
+ *  Copyright (C) 2018      - Stuart Carnie
+ *
+ *  RetroArch is free software: you can redistribute it and/or modify it under the terms
+ *  of the GNU General Public License as published by the Free Software Found-
+ *  ation, either version 3 of the License, or (at your option) any later version.
+ *
+ *  RetroArch is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+ *  PURPOSE.  See the GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with RetroArch.
+ *  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifdef HAVE_CONFIG_H
 #include "../../config.h"
@@ -35,11 +43,6 @@
 #include "../../verbosity.h"
 #ifdef HAVE_VULKAN
 #include "../common/vulkan_common.h"
-#endif
-#if __has_feature(objc_arc)
-#define BRIDGE __bridge
-#else
-#define BRIDGE
 #endif
 
 #if defined(HAVE_COCOATOUCH)
@@ -85,7 +88,7 @@ typedef struct cocoa_ctx_data
    bool core_hw_context_enable;
 #ifdef HAVE_VULKAN
    gfx_ctx_vulkan_data_t vk;
-   unsigned swap_interval;
+   int swap_interval;
 #endif
     unsigned width;
     unsigned height;
@@ -110,7 +113,7 @@ static NSOpenGLPixelFormat* g_format;
 
 void *glcontext_get_ptr(void)
 {
-   return g_context;
+   return (BRIDGE void *)g_context;
 }
 #endif
 
@@ -167,10 +170,7 @@ static float get_from_selector(Class obj_class, id obj_id, SEL selector, CGFloat
    [invocation setTarget:obj_id];
    [invocation invoke];
    [invocation getReturnValue:ret];
-#if __has_feature(objc_arc)
-#else
-   [invocation release];
-#endif
+   RELEASE(invocation);
    return *ret;
 }
 
@@ -212,7 +212,8 @@ float get_backing_scale_factor(void)
       if ([screen respondsToSelector:selector])
       {
          CGFloat ret;
-         CocoaView *g_view     = (CocoaView*)nsview_get_ptr();
+         NSView *g_view        = apple_platform.renderView;
+         //CocoaView *g_view     = (CocoaView*)nsview_get_ptr();
          backing_scale_def     = (float)get_from_selector
          ([[g_view window] class], [g_view window], selector, &ret);
       }
@@ -224,19 +225,22 @@ float get_backing_scale_factor(void)
 
 void cocoagl_gfx_ctx_update(void)
 {
-   if (cocoagl_api == GFX_CTX_VULKAN_API) {
-      return;
-   }
-   
+   switch (cocoagl_api)
+   {
+      case GFX_CTX_OPENGL_API:
 #if defined(HAVE_COCOA)
 #if MAC_OS_X_VERSION_10_7
-   CGLUpdateContext(g_hw_ctx.CGLContextObj);
-   CGLUpdateContext(g_context.CGLContextObj);
+         CGLUpdateContext(g_hw_ctx.CGLContextObj);
+         CGLUpdateContext(g_context.CGLContextObj);
 #else
-   [g_hw_ctx update];
-   [g_context update];
+         [g_hw_ctx update];
+         [g_context update];
 #endif
 #endif
+         break;
+      default:
+         break;
+   }
 }
 
 static void cocoagl_gfx_ctx_destroy(void *data)
@@ -254,18 +258,13 @@ static void cocoagl_gfx_ctx_destroy(void *data)
          
 #if defined(HAVE_COCOA)
          [g_context clearDrawable];
-         if (g_context)
-            [g_context release];
-         g_context = nil;
-         if (g_format)
-            [g_format release];
-         g_format = nil;
+         RELEASE(g_context);
+         RELEASE(g_format);
          if (g_hw_ctx)
          {
             [g_hw_ctx clearDrawable];
-            [g_hw_ctx release];
          }
-         g_hw_ctx = nil;
+         RELEASE(g_hw_ctx);
 #endif
          [GLContextClass clearCurrentContext];
          g_context = nil;
@@ -298,8 +297,19 @@ static void *cocoagl_gfx_ctx_init(video_frame_info_t *video_info, void *video_dr
    
    switch (cocoagl_api)
    {
+#if defined(HAVE_COCOATOUCH)
+      case GFX_CTX_OPENGL_ES_API:
+         // setViewType is not (yet?) defined for iOS
+         // [apple_platform setViewType:APPLE_VIEW_TYPE_OPENGL_ES];
+         break;
+#elif defined(HAVE_COCOA)
+      case GFX_CTX_OPENGL_API:
+         [apple_platform setViewType:APPLE_VIEW_TYPE_OPENGL];
+         break;
+#endif
       case GFX_CTX_VULKAN_API:
 #ifdef HAVE_VULKAN
+         [apple_platform setViewType:APPLE_VIEW_TYPE_VULKAN];
          if (!vulkan_context_init(&cocoa_ctx->vk, VULKAN_WSI_MVK_MACOS))
          {
             goto error;
@@ -314,7 +324,7 @@ static void *cocoagl_gfx_ctx_init(video_frame_info_t *video_info, void *video_dr
    return cocoa_ctx;
    
 error:
-   cocoagl_gfx_ctx_destroy(&cocoa_ctx);
+   free(cocoa_ctx);
    return NULL;
 }
 
@@ -351,7 +361,7 @@ static bool cocoagl_gfx_ctx_bind_api(void *data, enum gfx_ctx_api api, unsigned 
    return true;
 }
 
-static void cocoagl_gfx_ctx_swap_interval(void *data, unsigned interval)
+static void cocoagl_gfx_ctx_swap_interval(void *data, int interval)
 {
 #ifdef HAVE_VULKAN
    cocoa_ctx_data_t *cocoa_ctx = (cocoa_ctx_data_t*)data;
@@ -364,10 +374,10 @@ static void cocoagl_gfx_ctx_swap_interval(void *data, unsigned interval)
       {
 #if defined(HAVE_COCOATOUCH) // < No way to disable Vsync on iOS?
          //   Just skip presents so fast forward still works.
-         g_is_syncing = interval ? true : false;
+         g_is_syncing         = interval ? true : false;
          g_fast_forward_skips = interval ? 0 : 3;
 #elif defined(HAVE_COCOA)
-         GLint value = interval ? 1 : 0;
+         GLint value          = interval ? 1 : 0;
          [g_context setValues:&value forParameter:NSOpenGLCPSwapInterval];
 #endif
          break;
@@ -412,7 +422,8 @@ static bool cocoagl_gfx_ctx_set_video_mode(void *data,
    cocoa_ctx->height = height;
    
 #if defined(HAVE_COCOA)
-   CocoaView *g_view = (CocoaView*)nsview_get_ptr();
+   //CocoaView *g_view = (BRIDGE CocoaView *)nsview_get_ptr();
+   NSView *g_view = apple_platform.renderView;
 #endif
    
    switch (cocoagl_api)
@@ -454,7 +465,7 @@ static bool cocoagl_gfx_ctx_set_video_mode(void *data,
          
          g_format = [[NSOpenGLPixelFormat alloc] initWithAttributes:attributes];
          
-#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
+#if MAC_OS_X_VERSION_MIN_REQUIRED < 1050
          if (g_format == nil)
          {
             /* NSOpenGLFPAAllowOfflineRenderers is
@@ -481,9 +492,10 @@ static bool cocoagl_gfx_ctx_set_video_mode(void *data,
       case GFX_CTX_VULKAN_API:
 #ifdef HAVE_VULKAN
          RARCH_LOG("[macOS]: Native window size: %u x %u.\n", cocoa_ctx->width, cocoa_ctx->height);
-         if (!vulkan_surface_create(&cocoa_ctx->vk, VULKAN_WSI_MVK_MACOS, NULL,
-                                    g_view, cocoa_ctx->width, cocoa_ctx->height,
-                                    cocoa_ctx->swap_interval))
+         if (!vulkan_surface_create(&cocoa_ctx->vk,
+                  VULKAN_WSI_MVK_MACOS, NULL,
+                  (BRIDGE void *)g_view, cocoa_ctx->width, cocoa_ctx->height,
+                  cocoa_ctx->swap_interval))
          {
             RARCH_ERR("[macOS]: Failed to create surface.\n");
             return false;
@@ -503,7 +515,7 @@ static bool cocoagl_gfx_ctx_set_video_mode(void *data,
    {
       if (!has_went_fullscreen)
       {
-         [g_view enterFullScreenMode:get_chosen_screen() withOptions:nil];
+         [g_view enterFullScreenMode:(BRIDGE NSScreen *)get_chosen_screen() withOptions:nil];
          cocoagl_gfx_ctx_show_mouse(data, false);
       }
    }
@@ -554,7 +566,8 @@ static void cocoagl_gfx_ctx_get_video_size(void *data, unsigned* width, unsigned
 #if defined(HAVE_COCOA)
    CGRect size;
    GLsizei backingPixelWidth, backingPixelHeight;
-   CocoaView *g_view               = (CocoaView*)nsview_get_ptr();
+   NSView *g_view                  = apple_platform.renderView;
+   //CocoaView *g_view               = (CocoaView*)nsview_get_ptr();
    CGRect cgrect                   = NSRectToCGRect([g_view frame]);
 #if MAC_OS_X_VERSION_10_7
    SEL selector                    = NSSelectorFromString(BOXSTRING("convertRectToBacking:"));
@@ -577,7 +590,8 @@ static void cocoagl_gfx_ctx_update_title(void *data, void *data2)
    ui_window_cocoa_t view;
    const ui_window_t *window      = ui_companion_driver_get_window_ptr();
    
-   view.data = (CocoaView*)nsview_get_ptr();
+   //view.data = (CocoaView*)nsview_get_ptr();
+   view.data = (BRIDGE void *)apple_platform.renderView;
    
    if (window)
    {
@@ -760,10 +774,12 @@ static bool cocoagl_gfx_ctx_set_resize(void *data, unsigned width, unsigned heig
          cocoa_ctx->width  = width;
          cocoa_ctx->height = height;
          
-         if (vulkan_create_swapchain(&cocoa_ctx->vk, width, height, cocoa_ctx->swap_interval))
+         if (vulkan_create_swapchain(&cocoa_ctx->vk,
+                  width, height, cocoa_ctx->swap_interval))
          {
             cocoa_ctx->vk.context.invalid_swapchain = true;
-            vulkan_acquire_next_image(&cocoa_ctx->vk);
+            if (cocoa_ctx->vk.created_new_swapchain)
+               vulkan_acquire_next_image(&cocoa_ctx->vk);
          }
          else
          {

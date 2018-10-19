@@ -53,7 +53,8 @@ enum rarch_shader_type
    RARCH_SHADER_CG,
    RARCH_SHADER_HLSL,
    RARCH_SHADER_GLSL,
-   RARCH_SHADER_SLANG
+   RARCH_SHADER_SLANG,
+   RARCH_SHADER_METAL
 };
 
 enum gfx_scale_type
@@ -104,6 +105,7 @@ struct video_shader_parameter
    float initial;
    float maximum;
    float step;
+   int pass;
 };
 
 struct video_shader_pass
@@ -145,6 +147,7 @@ struct video_shader
    char prefix[64];
    char script_class[512];
    char script_path[PATH_MAX_LENGTH];
+   char path[PATH_MAX_LENGTH];
    char *script; /* Dynamically allocated. Must be free'd. Only used by XML. */
 
    bool modern; /* Only used for XML shaders. */

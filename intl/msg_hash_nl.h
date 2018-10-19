@@ -7,6 +7,9 @@ MSG_HASH(
       "Onbekende compiler"
       )
 MSG_HASH(
+    MSG_NATIVE,
+    "Native")
+MSG_HASH(
       MSG_DEVICE_DISCONNECTED_FROM_PORT,
       "Apparaat ontkoppeld van port"
       )
@@ -104,7 +107,7 @@ MSG_HASH(
       )
 MSG_HASH(
       MENU_ENUM_LABEL_VALUE_ACCOUNTS_LIST_END,
-      "Accounts List Endpoint"
+      "Accounts Lijst Eindpunt"
       )
 MSG_HASH(
       MENU_ENUM_LABEL_VALUE_ACCOUNTS_RETRO_ACHIEVEMENTS,
@@ -177,7 +180,7 @@ MSG_HASH(
       )
 MSG_HASH(
       MENU_ENUM_LABEL_VALUE_AUDIO_MUTE,
-      "Audio Mute"
+      "Geluid uitzetten"
       )
 MSG_HASH(
       MENU_ENUM_LABEL_VALUE_AUDIO_OUTPUT_RATE,
@@ -217,7 +220,7 @@ MSG_HASH(
       )
 MSG_HASH(
       MENU_ENUM_LABEL_VALUE_AUTO_SHADERS_ENABLE,
-      "Load Shader Presets Automatically"
+      "Laad Shader Presets Automatisch"
       )
 MSG_HASH(
       MENU_ENUM_LABEL_VALUE_BASIC_MENU_CONTROLS_BACK,
@@ -628,6 +631,8 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_BIND_DEFAULT_ALL,
       "Bind Default All")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_BIND_TIMEOUT,
       "Bind Timeout")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_BIND_HOLD,
+      "Bind Hold")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_DESCRIPTOR_HIDE_UNBOUND,
       "Verbergen Niet-gemapte Core Input Descripties")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_DESCRIPTOR_LABEL_SHOW,
@@ -730,7 +735,7 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_LOAD_STATE_KEY,
       "Load state")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_MENU_TOGGLE,
       "Menu toggle")
-MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_MOVIE_RECORD_TOGGLE,
+MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_BSV_RECORD_TOGGLE,
       "Movie record toggle")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_MUTE,
       "Audio mute toggle")
@@ -1106,8 +1111,13 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_RDB_ENTRY_START_CONTENT,
       "Content Opstarten")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_RDB_ENTRY_TGDB_RATING,
       "TGDB Rating")
+#ifdef HAVE_LAKKA_SWITCH
+MSG_HASH(MENU_ENUM_LABEL_VALUE_REBOOT,
+      "Herstart (RCM)")
+#else
 MSG_HASH(MENU_ENUM_LABEL_VALUE_REBOOT,
       "Herstart")
+#endif
 MSG_HASH(MENU_ENUM_LABEL_VALUE_RECORDING_CONFIG_DIRECTORY,
       "Opname Config Map")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_RECORDING_OUTPUT_DIRECTORY,
@@ -1296,6 +1306,8 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_FFMPEG_SUPPORT,
       "FFmpeg ondersteuning")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_FREETYPE_SUPPORT,
       "FreeType ondersteuning")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_STB_TRUETYPE_SUPPORT,
+      "STB TrueType ondersteuning")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_FRONTEND_IDENTIFIER,
       "Frontend identificatie")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_FRONTEND_NAME,
@@ -2189,6 +2201,10 @@ MSG_HASH(
    "Amount of seconds to wait until proceeding to the next bind."
    )
 MSG_HASH(
+   MENU_ENUM_SUBLABEL_INPUT_BIND_HOLD,
+   "Amount of seconds to hold an input to bind it."
+   )
+MSG_HASH(
    MENU_ENUM_SUBLABEL_INPUT_TURBO_PERIOD,
    "Describes the period of which turbo-enabled buttons toggle. Numbers are described in frames."
    )
@@ -2935,7 +2951,7 @@ MSG_HASH(MENU_ENUM_SUBLABEL_MENU_SHOW_CORE_UPDATER,
 MSG_HASH(MSG_PREPARING_FOR_CONTENT_SCAN,
       "Preparing for content scan...")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_CORE_DELETE,
-      "Delete core")
+      "Verwijder core")
 MSG_HASH(MENU_ENUM_SUBLABEL_CORE_DELETE,
       "Remove this core from disk.")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_RENAME_ENTRY,
@@ -2947,15 +2963,15 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_FRAMEBUFFER_OPACITY,
 MSG_HASH(MENU_ENUM_SUBLABEL_MENU_FRAMEBUFFER_OPACITY,
       "Modify the opacity of the framebuffer.")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_GOTO_FAVORITES,
-      "Favorites")
+      "Favorieten")
 MSG_HASH(MENU_ENUM_SUBLABEL_GOTO_FAVORITES,
       "Content which you have added to 'Favorites' will appear here.")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_GOTO_MUSIC,
-      "Music")
+      "Muziek")
 MSG_HASH(MENU_ENUM_SUBLABEL_GOTO_MUSIC,
       "Music which has been previously played will appear here.")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_GOTO_IMAGES,
-      "Image")
+      "Afbeeldingen")
 MSG_HASH(MENU_ENUM_SUBLABEL_GOTO_IMAGES,
       "Images which have been previously viewed will appear here.")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_GOTO_VIDEO,
@@ -2971,11 +2987,11 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_XMB_MAIN_MENU_ENABLE_SETTINGS,
 MSG_HASH(MENU_ENUM_LABEL_VALUE_CONTENT_SHOW_SETTINGS_PASSWORD,
       "Set Password For Enabling Settings Tab")
 MSG_HASH(MSG_INPUT_ENABLE_SETTINGS_PASSWORD,
-      "Enter Password")
+      "Voer wachtwoord in")
 MSG_HASH(MSG_INPUT_ENABLE_SETTINGS_PASSWORD_OK,
-      "Password correct.")
+      "Wachtwoord is correct.")
 MSG_HASH(MSG_INPUT_ENABLE_SETTINGS_PASSWORD_NOK,
-      "Password incorrect.")
+      "Wachtwoord is incorrect.")
 MSG_HASH(MENU_ENUM_SUBLABEL_XMB_MAIN_MENU_ENABLE_SETTINGS,
       "Enables the Settings tab. A restart is required for the tab to appear.")
 MSG_HASH(MENU_ENUM_SUBLABEL_CONTENT_SHOW_SETTINGS_PASSWORD,
@@ -3012,6 +3028,10 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_SHOW_REBOOT,
       "Toon Herstart")
 MSG_HASH(MENU_ENUM_SUBLABEL_MENU_SHOW_REBOOT,
       "Toon/verberg de 'Herstart' optie.")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_SHOW_SHUTDOWN,
+      "Show Shutdown")
+MSG_HASH(MENU_ENUM_SUBLABEL_MENU_SHOW_SHUTDOWN,
+      "Show/hide the 'Shutdown' option.")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_QUICK_MENU_VIEWS_SETTINGS,
       "Snelmenu")
 MSG_HASH(MENU_ENUM_SUBLABEL_QUICK_MENU_VIEWS_SETTINGS,
@@ -3098,10 +3118,13 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_RGUI_BORDER_FILLER_THICKNESS_ENABLE,
       "Enable border filler thickness")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_RGUI_BACKGROUND_FILLER_THICKNESS_ENABLE,
       "Enable background filler thickness")
-MSG_HASH(MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION, "For 15 kHz CRT displays only. Attempts to use exact core/game resolution and refresh rate.")
-MSG_HASH(MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION, "CRT SwitchRes") 
-MSG_HASH(MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION_SUPER, "When CRT SwitchRes is enabled, force ultrawide horizontal resolution to minimize mode switching.")
-MSG_HASH(MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION_SUPER, "CRT Super Resolution") 
+MSG_HASH(MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION, "For CRT displays only. Attempts to use exact core/game resolution and refresh rate.")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION, "CRT SwitchRes")
+MSG_HASH(
+      MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION_SUPER,
+      "Switch among native and ultrawide super resolutions."
+      )
+MSG_HASH(MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION_SUPER, "CRT Super Resolution")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_CONTENT_SHOW_REWIND,
       "Show Rewind Settings")
 MSG_HASH(MENU_ENUM_SUBLABEL_CONTENT_SHOW_REWIND,
@@ -3155,16 +3178,144 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_MIXER_ACTION_REMOVE,
 MSG_HASH(MENU_ENUM_LABEL_VALUE_MIXER_ACTION_VOLUME,
       "Volume")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_DETECT_CORE_LIST_OK_CURRENT_CORE,
-      "Current core")
+      "Huidige core")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_QT_MENU_SEARCH_CLEAR,
       "Clear")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_IN_MENU,
       "In-Menu")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_IN_GAME,
+      "In-Game")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_IN_GAME_PAUSED,
+      "In-Game (Paused)")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_STATUS_PLAYING,
+      "Playing")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_STATUS_PAUSED,
+      "Paused")
 MSG_HASH(
       MENU_ENUM_LABEL_VALUE_DISCORD_ALLOW,
-      "Enable Discord"
+      "Discord Inschakelen"
       )
 MSG_HASH(
       MENU_ENUM_SUBLABEL_DISCORD_ALLOW,
       "Enable or disable Discord support. Will not work with the browser version, only native desktop client."
       )
+MSG_HASH(MENU_ENUM_LABEL_VALUE_POWER_MANAGEMENT_SETTINGS,
+      "Power Management")
+MSG_HASH(MENU_ENUM_SUBLABEL_POWER_MANAGEMENT_SETTINGS,
+      "Change power management settings.")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_SUSTAINED_PERFORMANCE_MODE,
+      "Sustained Performance Mode")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_MPV_SUPPORT,
+      "mpv support")
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_VIDEO_ADAPTIVE_VSYNC,
+    "Adaptive Vsync"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_VIDEO_ADAPTIVE_VSYNC,
+    "V-Sync is enabled until performance falls below the target refresh rate. Can minimize stuttering when performance falls below realtime, and can be more energy efficient."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_CRT_SWITCHRES_SETTINGS,
+    "CRT SwitchRes"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_CRT_SWITCHRES_SETTINGS,
+    "Output native, low-resolution signals for use with CRT displays."
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_CRT_SWITCH_X_AXIS_CENTERING,
+    "Cycle through these options if the image is not centered properly on the display."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_CRT_SWITCH_X_AXIS_CENTERING,
+    "X-As Centering"
+    )
+MSG_HASH(
+      MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION_USE_CUSTOM_REFRESH_RATE,
+      "Use a custom refresh rate specified in the config file if needed.")
+MSG_HASH(
+      MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION_USE_CUSTOM_REFRESH_RATE,
+      "Use Custom Refresh Rate")
+MSG_HASH(
+      MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION_OUTPUT_DISPLAY_ID,
+      "Select the output port connected to the CRT display.")
+MSG_HASH(
+      MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION_OUTPUT_DISPLAY_ID,
+      "Output Display ID")
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_QUICK_MENU_START_RECORDING,
+    "Start Opname"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_QUICK_MENU_START_RECORDING,
+    "Start met opnemen."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_QUICK_MENU_STOP_RECORDING,
+    "Stop Opname"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_QUICK_MENU_STOP_RECORDING,
+    "Stop met opnemen."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_QUICK_MENU_START_STREAMING,
+    "Start Streaming"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_QUICK_MENU_START_STREAMING,
+    "Starts streaming."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_QUICK_MENU_STOP_STREAMING,
+    "Stop Streamen"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_QUICK_MENU_STOP_STREAMING,
+    "Stop met streamen."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_VIDEO_RECORD_QUALITY,
+    "Opname Kwaliteit"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_VIDEO_STREAM_QUALITY,
+    "Stream Kwaliteit"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_STREAMING_URL,
+    "Streaming URL"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_UDP_STREAM_PORT,
+    "UDP Stream Poort"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_ACCOUNTS_TWITCH,
+    "Twitch"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_ACCOUNTS_YOUTUBE,
+    "YouTube"
+    )
+MSG_HASH(MENU_ENUM_LABEL_VALUE_TWITCH_STREAM_KEY,
+      "Twitch Stream Key")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_YOUTUBE_STREAM_KEY,
+      "YouTube Stream Key")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_STREAMING_MODE,
+      "Streaming Mode")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_STREAMING_TITLE,
+      "Titel van Stream")
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_INPUT_SPLIT_JOYCON,
+    "Split Joy-Con"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_RESET_TO_DEFAULT_CONFIG,
+    "Fabrieksinstellingen resetten"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_RESET_TO_DEFAULT_CONFIG,
+    "Reset de instellingen aar fabrieksinstellingen."
+    )

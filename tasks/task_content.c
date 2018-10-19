@@ -147,7 +147,9 @@ static int  pending_subsystem_id                              = 0;
 static unsigned  pending_subsystem_rom_id                     = 0;
 
 static char pending_subsystem_ident[255];
+#if 0
 static char pending_subsystem_extensions[PATH_MAX_LENGTH];
+#endif
 static char *pending_subsystem_roms[RARCH_MAX_SUBSYSTEM_ROMS];
 
 
@@ -814,6 +816,11 @@ static bool content_file_init(
 
       free(info);
    }
+   else if (special == NULL)
+   {
+      *error_string = strdup(msg_hash_to_str(MSG_ERROR_LIBRETRO_CORE_REQUIRES_CONTENT));
+      ret = false;
+   }
 
    return ret;
 }
@@ -874,7 +881,6 @@ static bool task_load_content(content_ctx_info_t *content_info,
 
    if (!content_load(content_info))
    {
-      *error_string = strdup("This core requires a content file, could not load content.\n");
       return false;
    }
 
@@ -1569,6 +1575,10 @@ end:
       free(content_ctx.name_ups);
    if (content_ctx.directory_system)
       free(content_ctx.directory_system);
+   if (content_ctx.directory_cache)
+      free(content_ctx.directory_cache);
+   if (content_ctx.valid_extensions)
+      free(content_ctx.valid_extensions);
 
    if (!ret)
    {
@@ -1768,14 +1778,17 @@ void content_set_subsystem(unsigned idx)
 {
    rarch_system_info_t                  *system = runloop_get_system_info();
    const struct retro_subsystem_info *subsystem = system ?
-	   system->subsystem.data + pending_subsystem_id : NULL;
+	   system->subsystem.data + idx : NULL;
 
    pending_subsystem_id                         = idx;
 
-   strlcpy(pending_subsystem_ident,
-	   subsystem->ident, sizeof(pending_subsystem_ident));
+   if (subsystem)
+   {
+      strlcpy(pending_subsystem_ident,
+         subsystem->ident, sizeof(pending_subsystem_ident));
 
-   pending_subsystem_rom_num                    = subsystem->num_roms;
+      pending_subsystem_rom_num                    = subsystem->num_roms;
+   }
 
    RARCH_LOG("[subsystem] settings current subsytem to: %d(%s) roms: %d\n",
       pending_subsystem_id, pending_subsystem_ident, pending_subsystem_rom_num);

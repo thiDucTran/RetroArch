@@ -17,16 +17,21 @@
 
 #include <string.h>
 #include <time.h>
-
+#include <locale.h>
 #include <compat/strl.h>
 #include <retro_miscellaneous.h>
 #include <formats/image.h>
 #include <file/file_path.h>
 #include <streams/file_stream.h>
 #include <string/stdstring.h>
+#include <encodings/utf.h>
 
 #ifdef WIIU
 #include <wiiu/os/energy.h>
+#endif
+
+#ifdef HAVE_DISCORD
+#include "discord/discord.h"
 #endif
 
 #ifdef HAVE_CONFIG_H
@@ -42,7 +47,7 @@
 #include "menu_animation.h"
 #include "menu_driver.h"
 #include "menu_cbs.h"
-#include "menu_event.h"
+#include "menu_input.h"
 #include "menu_entries.h"
 #include "widgets/menu_dialog.h"
 #include "menu_shader.h"
@@ -85,6 +90,9 @@ static const menu_ctx_driver_t *menu_ctx_drivers[] = {
 #if defined(HAVE_XMB)
    &menu_ctx_xmb,
 #endif
+#if defined(HAVE_STRIPES)
+   &menu_ctx_stripes,
+#endif
 #if defined(HAVE_RGUI)
    &menu_ctx_rgui,
 #endif
@@ -118,6 +126,9 @@ static menu_display_ctx_driver_t *menu_display_ctx_drivers[] = {
 #ifdef HAVE_VULKAN
    &menu_display_ctx_vulkan,
 #endif
+#ifdef HAVE_METAL
+   &menu_display_ctx_metal,
+#endif
 #ifdef HAVE_VITA2D
    &menu_display_ctx_vita2d,
 #endif
@@ -127,14 +138,17 @@ static menu_display_ctx_driver_t *menu_display_ctx_drivers[] = {
 #ifdef WIIU
    &menu_display_ctx_wiiu,
 #endif
-#ifdef HAVE_CACA
-   &menu_display_ctx_caca,
-#endif
 #if defined(_WIN32) && !defined(_XBOX)
    &menu_display_ctx_gdi,
 #endif
 #ifdef DJGPP
    &menu_display_ctx_vga,
+#endif
+#ifdef HAVE_SIXEL
+   &menu_display_ctx_sixel,
+#endif
+#ifdef HAVE_CACA
+   &menu_display_ctx_caca,
 #endif
    &menu_display_ctx_null,
    NULL,
@@ -260,6 +274,10 @@ static bool menu_display_check_compatibility(
          if (string_is_equal(video_driver, "vulkan"))
             return true;
          break;
+      case MENU_VIDEO_DRIVER_METAL:
+         if (string_is_equal(video_driver, "metal"))
+            return true;
+         break;
       case MENU_VIDEO_DRIVER_DIRECT3D8:
          if (string_is_equal(video_driver, "d3d8"))
             return true;
@@ -292,6 +310,10 @@ static bool menu_display_check_compatibility(
          if (string_is_equal(video_driver, "gx2"))
             return true;
          break;
+      case MENU_VIDEO_DRIVER_SIXEL:
+         if (string_is_equal(video_driver, "sixel"))
+            return true;
+         break;
       case MENU_VIDEO_DRIVER_CACA:
          if (string_is_equal(video_driver, "caca"))
             return true;
@@ -302,6 +324,10 @@ static bool menu_display_check_compatibility(
          break;
       case MENU_VIDEO_DRIVER_VGA:
          if (string_is_equal(video_driver, "vga"))
+            return true;
+         break;
+      case MENU_VIDEO_DRIVER_SWITCH:
+         if (string_is_equal(video_driver, "switch"))
             return true;
          break;
    }
@@ -321,28 +347,58 @@ void menu_display_timedate(menu_display_ctx_datetime_t *datetime)
 
    time(&time_);
 
+   setlocale(LC_TIME, "");
+
    switch (datetime->time_mode)
    {
       case 0: /* Date and time */
          strftime(datetime->s, datetime->len,
                "%Y-%m-%d %H:%M:%S", localtime(&time_));
          break;
-      case 1: /* Date */
+      case 1: /* YY-MM-DD HH:MM */
          strftime(datetime->s, datetime->len,
-               "%Y-%m-%d", localtime(&time_));
+               "%Y-%m-%d %H:%M", localtime(&time_));
          break;
-      case 2: /* Time */
+      case 2: /* MM-DD-YYYY HH:MM  */
+         strftime(datetime->s, datetime->len,
+               "%m-%d-%Y %H:%M", localtime(&time_));
+         break;
+      case 3: /* Time */
          strftime(datetime->s, datetime->len,
                "%H:%M:%S", localtime(&time_));
          break;
-      case 3: /* Time (hours-minutes) */
+      case 4: /* Time (hours-minutes) */
          strftime(datetime->s, datetime->len,
                "%H:%M", localtime(&time_));
          break;
-      case 4: /* Date and time, without year and seconds */
+      case 5: /* Date and time, without year and seconds */
          strftime(datetime->s, datetime->len,
                "%d/%m %H:%M", localtime(&time_));
          break;
+      case 6:
+         strftime(datetime->s, datetime->len,
+               "%m/%d %H:%M", localtime(&time_));
+         break;
+      case 7: /* Time (hours-minutes), in 12 hour AM-PM designation */
+#if defined(__linux__) && !defined(ANDROID)
+         strftime(datetime->s, datetime->len,
+            "%r", localtime(&time_));
+#else
+         {
+            char *local;
+
+            strftime(datetime->s, datetime->len,
+
+               "%I:%M:%S %p", localtime(&time_));
+            local = local_to_utf8_string_alloc(datetime->s);
+
+            if (local)
+            {
+               strlcpy(datetime->s, local, datetime->len);
+               free(local);
+            }
+         }
+#endif
    }
 }
 
@@ -360,6 +416,20 @@ void menu_display_blend_end(video_frame_info_t *video_info)
       menu_disp->blend_end(video_info);
 }
 
+/* Begin scissoring operation */
+void menu_display_scissor_begin(video_frame_info_t *video_info, int x, int y, unsigned width, unsigned height)
+{
+   if (menu_disp && menu_disp->scissor_begin)
+      menu_disp->scissor_begin(video_info, x, y, width, height);
+}
+
+/* End scissoring operation */
+void menu_display_scissor_end(video_frame_info_t *video_info)
+{
+   if (menu_disp && menu_disp->scissor_end)
+      menu_disp->scissor_end(video_info);
+}
+
 /* Teardown; deinitializes and frees all
  * fonts associated to the menu driver */
 void menu_display_font_free(font_data_t *font)
@@ -369,40 +439,28 @@ void menu_display_font_free(font_data_t *font)
 
 /* Setup: Initializes the font associated
  * to the menu driver */
-static font_data_t *menu_display_font_main_init(
-      menu_display_ctx_font_t *font,
-      bool is_threaded)
-{
-   font_data_t *font_data = NULL;
-
-   if (!font || !menu_disp)
-      return NULL;
-
-   if (!menu_disp->font_init_first((void**)&font_data,
-            video_driver_get_ptr(false),
-            font->path, font->size, is_threaded))
-      return NULL;
-
-   return font_data;
-}
-
 font_data_t *menu_display_font(
       enum application_special_type type,
       float font_size,
       bool is_threaded)
 {
-   menu_display_ctx_font_t font_info;
    char fontpath[PATH_MAX_LENGTH];
+   font_data_t *font_data = NULL;
+
+   if (!menu_disp)
+      return NULL;
 
    fontpath[0] = '\0';
 
    fill_pathname_application_special(
          fontpath, sizeof(fontpath), type);
 
-   font_info.path = fontpath;
-   font_info.size = font_size;
+   if (!menu_disp->font_init_first((void**)&font_data,
+            video_driver_get_ptr(false),
+            fontpath, font_size, is_threaded))
+      return NULL;
 
-   return menu_display_font_main_init(&font_info, is_threaded);
+   return font_data;
 }
 
 /* Reset the menu's coordinate array vertices.
@@ -453,14 +511,22 @@ bool menu_display_libretro(bool is_idle,
          input_driver_set_libretro_input_blocked();
 
       core_run();
-
       input_driver_unset_libretro_input_blocked();
+
       return true;
    }
 
    if (is_idle)
+   {
+#ifdef HAVE_DISCORD
+      discord_userdata_t userdata;
+      userdata.status = DISCORD_PRESENCE_GAME_PAUSED;
+
+      command_event(CMD_EVENT_DISCORD_UPDATE, &userdata);
+#endif
       return true; /* Maybe return false here
                       for indication of idleness? */
+   }
    return video_driver_cached_frame();
 }
 
@@ -599,6 +665,18 @@ float menu_display_get_dpi(void)
    return dpi;
 }
 
+bool menu_display_driver_exists(const char *s)
+{
+   unsigned i;
+   for (i = 0; i < ARRAY_SIZE(menu_display_ctx_drivers); i++)
+   {
+      if (string_is_equal(s, menu_display_ctx_drivers[i]->ident))
+         return true;
+   }
+
+   return false;
+}
+
 bool menu_display_init_first_driver(bool video_is_threaded)
 {
    unsigned i;
@@ -727,6 +805,56 @@ void menu_display_draw_quad(
    draw.y            = (int)height - y - (int)h;
    draw.width        = w;
    draw.height       = h;
+   draw.coords       = &coords;
+   draw.matrix_data  = NULL;
+   draw.texture      = menu_display_white_texture;
+   draw.prim_type    = MENU_DISPLAY_PRIM_TRIANGLESTRIP;
+   draw.pipeline.id  = 0;
+   draw.scale_factor = 1.0f;
+   draw.rotation     = 0.0f;
+
+   menu_display_draw(&draw, video_info);
+
+   if (menu_disp && menu_disp->blend_end)
+      menu_disp->blend_end(video_info);
+}
+
+void menu_display_draw_polygon(
+      video_frame_info_t *video_info,
+      int x1, int y1,
+      int x2, int y2,
+      int x3, int y3,
+      int x4, int y4,
+      unsigned width, unsigned height,
+      float *color)
+{
+   menu_display_ctx_draw_t draw;
+   struct video_coords coords;
+
+   float vertex[8];
+
+   vertex[0]             = x1 / (float)width;
+   vertex[1]             = y1 / (float)height;
+   vertex[2]             = x2 / (float)width;
+   vertex[3]             = y2 / (float)height;
+   vertex[4]             = x3 / (float)width;
+   vertex[5]             = y3 / (float)height;
+   vertex[6]             = x4 / (float)width;
+   vertex[7]             = y4 / (float)height;
+
+   coords.vertices      = 4;
+   coords.vertex        = &vertex[0];
+   coords.tex_coord     = NULL;
+   coords.lut_tex_coord = NULL;
+   coords.color         = color;
+
+   if (menu_disp && menu_disp->blend_begin)
+      menu_disp->blend_begin(video_info);
+
+   draw.x            = 0;
+   draw.y            = 0;
+   draw.width        = width;
+   draw.height       = height;
    draw.coords       = &coords;
    draw.matrix_data  = NULL;
    draw.texture      = menu_display_white_texture;
@@ -1417,7 +1545,7 @@ void menu_display_draw_keyboard(
       }
 
       menu_display_draw_text(font, grid[i],
-            width/2.0 - (11*ptr_width)/2.0 + (i % 11) 
+            width/2.0 - (11*ptr_width)/2.0 + (i % 11)
             * ptr_width + ptr_width/2.0,
             height/2.0 + ptr_height + line_y + font->size / 3,
             width, height, 0xffffffff, TEXT_ALIGN_CENTER, 1.0f,
@@ -1864,14 +1992,46 @@ bool menu_driver_iterate(menu_ctx_iterate_t *iterate)
    return true;
 }
 
-/* Clear all the menu lists. */
-bool menu_driver_list_clear(void *data)
+bool menu_driver_list_cache(menu_ctx_list_t *list)
 {
-   file_list_t *list = (file_list_t*)data;
+   if (!list || !menu_driver_ctx || !menu_driver_ctx->list_cache)
+      return false;
+
+   menu_driver_ctx->list_cache(menu_userdata,
+         list->type, list->action);
+   return true;
+}
+
+/* Clear all the menu lists. */
+bool menu_driver_list_clear(file_list_t *list)
+{
    if (!list)
       return false;
    if (menu_driver_ctx->list_clear)
       menu_driver_ctx->list_clear(list);
+   return true;
+}
+
+bool menu_driver_list_insert(menu_ctx_list_t *list)
+{
+   if (!list || !menu_driver_ctx || !menu_driver_ctx->list_insert)
+      return false;
+   menu_driver_ctx->list_insert(menu_userdata,
+         list->list, list->path, list->fullpath,
+         list->label, list->idx, list->entry_type);
+
+   return true;
+}
+
+bool menu_driver_list_set_selection(file_list_t *list)
+{
+   if (!list)
+      return false;
+
+   if (!menu_driver_ctx || !menu_driver_ctx->list_set_selection)
+      return false;
+
+   menu_driver_ctx->list_set_selection(menu_userdata, list);
    return true;
 }
 
@@ -1970,6 +2130,41 @@ void menu_driver_destroy(void)
    menu_driver_data_own           = false;
    menu_driver_ctx                = NULL;
    menu_userdata                  = NULL;
+}
+
+bool menu_driver_list_get_entry(menu_ctx_list_t *list)
+{
+   if (!menu_driver_ctx || !menu_driver_ctx->list_get_entry)
+   {
+      list->entry = NULL;
+      return false;
+   }
+   list->entry = menu_driver_ctx->list_get_entry(menu_userdata,
+         list->type, (unsigned int)list->idx);
+   return true;
+}
+
+bool menu_driver_list_get_selection(menu_ctx_list_t *list)
+{
+   if (!menu_driver_ctx || !menu_driver_ctx->list_get_selection)
+   {
+      list->selection = 0;
+      return false;
+   }
+   list->selection = menu_driver_ctx->list_get_selection(menu_userdata);
+
+   return true;
+}
+
+bool menu_driver_list_get_size(menu_ctx_list_t *list)
+{
+   if (!menu_driver_ctx || !menu_driver_ctx->list_get_size)
+   {
+      list->size = 0;
+      return false;
+   }
+   list->size = menu_driver_ctx->list_get_size(menu_userdata, list->type);
+   return true;
 }
 
 bool menu_driver_ctl(enum rarch_menu_ctl_state state, void *data)
@@ -2117,42 +2312,6 @@ bool menu_driver_ctl(enum rarch_menu_ctl_state state, void *data)
          }
          menu_driver_data = NULL;
          break;
-      case RARCH_MENU_CTL_LIST_GET_ENTRY:
-         {
-            menu_ctx_list_t *list = (menu_ctx_list_t*)data;
-
-            if (!menu_driver_ctx || !menu_driver_ctx->list_get_entry)
-            {
-               list->entry = NULL;
-               return false;
-            }
-            list->entry = menu_driver_ctx->list_get_entry(menu_userdata,
-                  list->type, (unsigned int)list->idx);
-         }
-         break;
-      case RARCH_MENU_CTL_LIST_GET_SIZE:
-         {
-            menu_ctx_list_t *list = (menu_ctx_list_t*)data;
-            if (!menu_driver_ctx || !menu_driver_ctx->list_get_size)
-            {
-               list->size = 0;
-               return false;
-            }
-            list->size = menu_driver_ctx->list_get_size(menu_userdata, list->type);
-         }
-         break;
-      case RARCH_MENU_CTL_LIST_GET_SELECTION:
-         {
-            menu_ctx_list_t *list = (menu_ctx_list_t*)data;
-
-            if (!menu_driver_ctx || !menu_driver_ctx->list_get_selection)
-            {
-               list->selection = 0;
-               return false;
-            }
-            list->selection = menu_driver_ctx->list_get_selection(menu_userdata);
-         }
-         break;
       case RARCH_MENU_CTL_LIST_FREE:
          {
             menu_ctx_list_t *list = (menu_ctx_list_t*)data;
@@ -2168,49 +2327,6 @@ bool menu_driver_ctl(enum rarch_menu_ctl_state state, void *data)
                file_list_free_userdata  (list->list, list->idx);
                file_list_free_actiondata(list->list, list->idx);
             }
-         }
-         break;
-      case RARCH_MENU_CTL_REFRESH:
-         {
-#if 0
-            bool refresh = false;
-            menu_entries_ctl(MENU_ENTRIES_CTL_LIST_DEINIT, NULL);
-            menu_entries_ctl(MENU_ENTRIES_CTL_SETTINGS_DEINIT, NULL);
-            menu_entries_ctl(MENU_ENTRIES_CTL_INIT, NULL);
-            menu_entries_ctl(MENU_ENTRIES_CTL_SET_REFRESH, &refresh);
-#endif
-         }
-         break;
-      case RARCH_MENU_CTL_LIST_SET_SELECTION:
-         {
-            file_list_t *list = (file_list_t*)data;
-
-            if (!list)
-               return false;
-
-            if (!menu_driver_ctx || !menu_driver_ctx->list_set_selection)
-               return false;
-
-            menu_driver_ctx->list_set_selection(menu_userdata, list);
-         }
-         break;
-      case RARCH_MENU_CTL_LIST_CACHE:
-         {
-            menu_ctx_list_t *list = (menu_ctx_list_t*)data;
-            if (!list || !menu_driver_ctx || !menu_driver_ctx->list_cache)
-               return false;
-            menu_driver_ctx->list_cache(menu_userdata,
-                  list->type, list->action);
-         }
-         break;
-      case RARCH_MENU_CTL_LIST_INSERT:
-         {
-            menu_ctx_list_t *list = (menu_ctx_list_t*)data;
-            if (!list || !menu_driver_ctx || !menu_driver_ctx->list_insert)
-               return false;
-            menu_driver_ctx->list_insert(menu_userdata,
-                  list->list, list->path, list->fullpath,
-                  list->label, list->idx, list->entry_type);
          }
          break;
       case RARCH_MENU_CTL_ENVIRONMENT:

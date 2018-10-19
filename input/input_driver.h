@@ -57,6 +57,8 @@ enum input_toggle_type
    INPUT_TOGGLE_L3_R3,
    INPUT_TOGGLE_L1_R1_START_SELECT,
    INPUT_TOGGLE_START_SELECT,
+   INPUT_TOGGLE_L3_R,
+   INPUT_TOGGLE_L_R,
    INPUT_TOGGLE_LAST
 };
 
@@ -767,7 +769,7 @@ void input_config_clear_device_display_name(unsigned port);
 
 void input_config_clear_device_config_name(unsigned port);
 
-unsigned input_config_get_device_count();
+unsigned input_config_get_device_count(void);
 
 unsigned *input_config_get_device_ptr(unsigned port);
 

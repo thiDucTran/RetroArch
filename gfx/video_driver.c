@@ -74,9 +74,9 @@
 #define FPS_UPDATE_INTERVAL 256
 
 #ifdef HAVE_THREADS
-#define video_driver_is_threaded() ((!video_driver_is_hw_context() && video_driver_threaded) ? true : false)
+#define video_driver_is_threaded_internal() ((!video_driver_is_hw_context() && video_driver_threaded) ? true : false)
 #else
-#define video_driver_is_threaded() (false)
+#define video_driver_is_threaded_internal() (false)
 #endif
 
 #ifdef HAVE_THREADS
@@ -164,7 +164,7 @@ static unsigned video_driver_height                      = 0;
 
 static enum rarch_display_type video_driver_display_type = RARCH_DISPLAY_NONE;
 static char video_driver_title_buf[64]                   = {0};
-static char video_driver_window_title[128]               = {0};
+static char video_driver_window_title[512]               = {0};
 static bool video_driver_window_title_update             = true;
 
 static retro_time_t video_driver_frame_time_samples[MEASURE_FRAME_TIME_SAMPLES_COUNT];
@@ -239,6 +239,7 @@ struct aspect_ratio_elem aspectratio_lut[ASPECT_RATIO_END] = {
    { "16:9",          1.7778f },
    { "16:10",         1.6f },
    { "16:15",         16.0f / 15.0f },
+   { "21:9",          21.0f / 9.0f },
    { "1:1",           1.0f },
    { "2:1",           2.0f },
    { "3:2",           1.5f },
@@ -261,11 +262,14 @@ struct aspect_ratio_elem aspectratio_lut[ASPECT_RATIO_END] = {
 };
 
 static const video_driver_t *video_drivers[] = {
+#ifdef HAVE_OPENGL
+   &video_gl,
+#endif
 #ifdef HAVE_VULKAN
    &video_vulkan,
 #endif
-#ifdef HAVE_OPENGL
-   &video_gl,
+#ifdef HAVE_METAL
+   &video_metal,
 #endif
 #ifdef XENON
    &video_xenon360,
@@ -336,17 +340,23 @@ static const video_driver_t *video_drivers[] = {
 #if defined(_WIN32) && !defined(_XBOX)
    &video_gdi,
 #endif
-#ifdef HAVE_CACA
-   &video_caca,
-#endif
 #ifdef DJGPP
    &video_vga,
+#endif
+#ifdef HAVE_SIXEL
+   &video_sixel,
+#endif
+#ifdef HAVE_CACA
+   &video_caca,
 #endif
    &video_null,
    NULL,
 };
 
 static const gfx_ctx_driver_t *gfx_ctx_drivers[] = {
+#if defined(HAVE_LIBNX) && defined(HAVE_OPENGL)
+   &switch_ctx,
+#endif
 #if defined(__CELLOS_LV2__)
    &gfx_ctx_ps3,
 #endif
@@ -406,6 +416,9 @@ static const gfx_ctx_driver_t *gfx_ctx_drivers[] = {
 #if defined(_WIN32) && !defined(_XBOX)
    &gfx_ctx_gdi,
 #endif
+#ifdef HAVE_SIXEL
+   &gfx_ctx_sixel,
+#endif
    &gfx_ctx_null,
    NULL
 };
@@ -445,12 +458,6 @@ static bool get_metrics_null(void *data, enum display_metric_types type,
 static bool set_resize_null(void *a, unsigned b, unsigned c)
 {
    return false;
-}
-
-void video_driver_set_resize(unsigned width, unsigned height)
-{
-   if (current_video_context.set_resize)
-      current_video_context.set_resize(video_context_data, width, height);
 }
 
 /**
@@ -493,6 +500,11 @@ const char *video_driver_find_ident(int idx)
 const char* config_get_video_driver_options(void)
 {
    return char_list_new_special(STRING_LIST_VIDEO_DRIVERS, NULL);
+}
+
+bool video_driver_is_threaded(void)
+{
+   return video_driver_is_threaded_internal();
 }
 
 #ifdef HAVE_VULKAN
@@ -542,7 +554,7 @@ void video_driver_set_threaded(bool val)
 void *video_driver_get_ptr(bool force_nonthreaded_data)
 {
 #ifdef HAVE_THREADS
-   if (video_driver_is_threaded() && !force_nonthreaded_data)
+   if (video_driver_is_threaded_internal() && !force_nonthreaded_data)
       return video_thread_get_ptr(NULL);
 #endif
 
@@ -659,11 +671,9 @@ retro_proc_address_t video_driver_get_proc_address(const char *sym)
 bool video_driver_set_shader(enum rarch_shader_type type,
       const char *path)
 {
-   bool ret = false;
    if (current_video->set_shader)
-      ret = current_video->set_shader(video_driver_data, type, path);
-
-   return ret;
+      return current_video->set_shader(video_driver_data, type, path);
+   return false;
 }
 
 static void video_driver_filter_free(void)
@@ -831,7 +841,7 @@ static void video_driver_pixel_converter_free(void)
 static void video_driver_free_internal(void)
 {
 #ifdef HAVE_THREADS
-   bool is_threaded     = video_driver_is_threaded();
+   bool is_threaded     = video_driver_is_threaded_internal();
 #endif
 
    command_event(CMD_EVENT_OVERLAY_DEINIT, NULL);
@@ -1035,7 +1045,7 @@ static bool video_driver_init_internal(bool *video_is_threaded)
    video_driver_find_driver();
 
 #ifdef HAVE_THREADS
-   video.is_threaded   = video_driver_is_threaded();
+   video.is_threaded   = video_driver_is_threaded_internal();
    *video_is_threaded  = video.is_threaded;
 
    if (video.is_threaded)
@@ -1235,7 +1245,7 @@ void video_driver_cached_frame_get(const void **data, unsigned *width,
 void video_driver_get_size(unsigned *width, unsigned *height)
 {
 #ifdef HAVE_THREADS
-   bool is_threaded = video_driver_is_threaded();
+   bool is_threaded = video_driver_is_threaded_internal();
    video_driver_threaded_lock(is_threaded);
 #endif
    if (width)
@@ -1250,7 +1260,7 @@ void video_driver_get_size(unsigned *width, unsigned *height)
 void video_driver_set_size(unsigned *width, unsigned *height)
 {
 #ifdef HAVE_THREADS
-   bool is_threaded = video_driver_is_threaded();
+   bool is_threaded = video_driver_is_threaded_internal();
    video_driver_threaded_lock(is_threaded);
 #endif
    if (width)
@@ -1308,7 +1318,7 @@ bool video_monitor_fps_statistics(double *refresh_rate,
    unsigned samples       = 0;
 
 #ifdef HAVE_THREADS
-   if (video_driver_is_threaded())
+   if (video_driver_is_threaded_internal())
       return false;
 #endif
 
@@ -1441,15 +1451,18 @@ void video_driver_monitor_adjust_system_rates(void)
    timing_skew                             = fabs(
          1.0f - info->fps / timing_skew_hz);
 
-   /* We don't want to adjust pitch too much. If we have extreme cases,
-    * just don't readjust at all. */
-   if (timing_skew <= settings->floats.audio_max_timing_skew)
-      return;
+   if (!settings->bools.vrr_runloop_enable)
+   {
+      /* We don't want to adjust pitch too much. If we have extreme cases,
+       * just don't readjust at all. */
+      if (timing_skew <= settings->floats.audio_max_timing_skew)
+         return;
 
-   RARCH_LOG("[Video]: Timings deviate too much. Will not adjust."
-         " (Display = %.2f Hz, Game = %.2f Hz)\n",
-         video_refresh_rate,
-         (float)info->fps);
+      RARCH_LOG("[Video]: Timings deviate too much. Will not adjust."
+            " (Display = %.2f Hz, Game = %.2f Hz)\n",
+            video_refresh_rate,
+            (float)info->fps);
+   }
 
    if (info->fps <= timing_skew_hz)
       return;
@@ -1592,6 +1605,7 @@ void video_driver_destroy(void)
    video_driver_cache_context_ack = false;
    video_driver_record_gpu_buffer = NULL;
    current_video                  = NULL;
+   video_driver_set_cached_frame_ptr(NULL);
 }
 
 void video_driver_set_cached_frame_ptr(const void *data)
@@ -1622,7 +1636,7 @@ bool video_driver_is_stub_frame(void)
 bool video_driver_supports_recording(void)
 {
    settings_t *settings = config_get_ptr();
-   return settings->bools.video_gpu_record 
+   return settings->bools.video_gpu_record
       && current_video->read_viewport;
 }
 
@@ -1649,7 +1663,7 @@ void video_driver_set_viewport_config(void)
    {
       struct retro_game_geometry *geom = &video_driver_av_info.geometry;
 
-      if (geom->aspect_ratio > 0.0f && 
+      if (geom->aspect_ratio > 0.0f &&
             settings->bools.video_aspect_ratio_auto)
          aspectratio_lut[ASPECT_RATIO_CONFIG].value = geom->aspect_ratio;
       else
@@ -1776,6 +1790,7 @@ bool video_driver_init(bool *video_is_threaded)
 {
    video_driver_lock_new();
    video_driver_filter_free();
+   video_driver_set_cached_frame_ptr(NULL);
    return video_driver_init_internal(video_is_threaded);
 }
 
@@ -1789,6 +1804,7 @@ void video_driver_free(void)
    video_driver_free_internal();
    video_driver_lock_free();
    video_driver_data = NULL;
+   video_driver_set_cached_frame_ptr(NULL);
 }
 
 void video_driver_monitor_reset(void)
@@ -1877,7 +1893,7 @@ void video_driver_update_viewport(struct video_viewport* vp, bool force_full, bo
          }
          else if (device_aspect > desired_aspect)
          {
-            delta      = (desired_aspect / device_aspect - 1.0f) 
+            delta      = (desired_aspect / device_aspect - 1.0f)
                / 2.0f + 0.5f;
             vp->x      = (int)roundf(vp->full_width * (0.5f - delta));
             vp->width  = (unsigned)roundf(2.0f * vp->full_width * delta);
@@ -1888,7 +1904,7 @@ void video_driver_update_viewport(struct video_viewport* vp, bool force_full, bo
          {
             vp->x      = 0;
             vp->width  = vp->full_width;
-            delta      = (device_aspect / desired_aspect - 1.0f) 
+            delta      = (device_aspect / desired_aspect - 1.0f)
                / 2.0f + 0.5f;
             vp->y      = (int)roundf(vp->full_height * (0.5f - delta));
             vp->height = (unsigned)roundf(2.0f * vp->full_height * delta);
@@ -2303,7 +2319,7 @@ void video_viewport_get_scaled_integer(struct video_viewport *vp,
       unsigned base_width;
       /* Use system reported sizes as these define the
        * geometry for the "normal" case. */
-      unsigned base_height                 = 
+      unsigned base_height                 =
          video_driver_av_info.geometry.base_height;
 
       if (base_height == 0)
@@ -2610,9 +2626,9 @@ void video_driver_frame(const void *data, unsigned width,
    /* Display the FPS, with a higher priority. */
    if (video_info.fps_show)
       runloop_msg_queue_push(video_info.fps_text, 2, 1, true);
-  
-  	/* trigger set resolution*/
-	if (video_info.crt_switch_resolution)
+
+   /* trigger set resolution*/
+   if (video_info.crt_switch_resolution)
    {
       video_driver_crt_switching_active = true;
 
@@ -2622,12 +2638,12 @@ void video_driver_frame(const void *data, unsigned width,
          width = 3840;
       if (video_info.crt_switch_resolution_super == 1920)
          width = 1920;
-      crt_switch_res_core(width, height, video_driver_core_hz);
+      crt_switch_res_core(width, height, video_driver_core_hz, video_info.crt_switch_resolution, video_info.crt_switch_center_adjust);
    }
    else if (!video_info.crt_switch_resolution)
-		video_driver_crt_switching_active = false;
-	
-	/* trigger set resolution*/
+      video_driver_crt_switching_active = false;
+
+   /* trigger set resolution*/
 }
 
 void video_driver_display_type_set(enum rarch_display_type type)
@@ -2668,7 +2684,7 @@ bool video_driver_texture_load(void *data,
       return false;
 
    *id = video_driver_poke->load_texture(video_driver_data, data,
-         video_driver_is_threaded(),
+         video_driver_is_threaded_internal(),
          filter_type);
 
    return true;
@@ -2714,14 +2730,15 @@ void video_driver_build_info(video_frame_info_t *video_info)
    struct retro_hw_render_callback *hwr =
       video_driver_get_hw_context();
 #ifdef HAVE_THREADS
-   bool is_threaded                  = video_driver_is_threaded();
+   bool is_threaded                  = video_driver_is_threaded_internal();
    video_driver_threaded_lock(is_threaded);
 #endif
    settings                          = config_get_ptr();
    custom_vp                         = &settings->video_viewport_custom;
    video_info->refresh_rate          = settings->floats.video_refresh_rate;
-   video_info->crt_switch_resolution = settings->bools.crt_switch_resolution;	
-   video_info->crt_switch_resolution_super = settings->uints.crt_switch_resolution_super;	
+   video_info->crt_switch_resolution = settings->uints.crt_switch_resolution;
+   video_info->crt_switch_resolution_super = settings->uints.crt_switch_resolution_super;
+   video_info->crt_switch_center_adjust    = settings->ints.crt_switch_center_adjust;
    video_info->black_frame_insertion = settings->bools.video_black_frame_insertion;
    video_info->hard_sync             = settings->bools.video_hard_sync;
    video_info->hard_sync_frames      = settings->uints.video_hard_sync_frames;
@@ -2761,6 +2778,8 @@ void video_driver_build_info(video_frame_info_t *video_info)
    video_info->use_rgba              = video_driver_use_rgba;
 
    video_info->libretro_running       = false;
+   video_info->msg_bgcolor_enable     = settings->bools.video_msg_bgcolor_enable;
+
 #ifdef HAVE_MENU
    video_info->menu_is_alive          = menu_driver_is_alive();
    video_info->menu_footer_opacity    = settings->floats.menu_footer_opacity;
@@ -2803,6 +2822,7 @@ void video_driver_build_info(video_frame_info_t *video_info)
    video_info->input_driver_nonblock_state = input_driver_is_nonblock_state();
 
    video_info->context_data           = video_context_data;
+   video_info->shader_driver          = current_shader;
    video_info->shader_data            = current_shader_data;
 
    video_info->cb_update_window_title = current_video_context.update_window_title;
@@ -2810,7 +2830,6 @@ void video_driver_build_info(video_frame_info_t *video_info)
    video_info->cb_get_metrics         = current_video_context.get_metrics;
    video_info->cb_set_resize          = current_video_context.set_resize;
 
-   video_info->cb_shader_use          = video_driver_cb_shader_use;
    video_info->cb_set_mvp             = video_driver_cb_shader_set_mvp;
 
    video_info->userdata               = video_driver_get_ptr(false);
@@ -2836,13 +2855,12 @@ void video_driver_build_info(video_frame_info_t *video_info)
  * viewport info.
  **/
 bool video_driver_translate_coord_viewport(
-      void *data,
+      struct video_viewport *vp,
       int mouse_x,           int mouse_y,
       int16_t *res_x,        int16_t *res_y,
       int16_t *res_screen_x, int16_t *res_screen_y)
 {
    int scaled_screen_x, scaled_screen_y, scaled_x, scaled_y;
-   struct video_viewport *vp = (struct video_viewport*)data;
    int norm_vp_width         = (int)vp->width;
    int norm_vp_height        = (int)vp->height;
    int norm_full_vp_width    = (int)vp->full_width;
@@ -2852,13 +2870,13 @@ bool video_driver_translate_coord_viewport(
       return false;
 
    if (mouse_x >= 0 && mouse_x <= norm_full_vp_width)
-      scaled_screen_x = ((2 * mouse_x * 0x7fff) 
+      scaled_screen_x = ((2 * mouse_x * 0x7fff)
             / norm_full_vp_width)  - 0x7fff;
    else
       scaled_screen_x = -0x8000; /* OOB */
 
    if (mouse_y >= 0 && mouse_y <= norm_full_vp_height)
-      scaled_screen_y = ((2 * mouse_y * 0x7fff) 
+      scaled_screen_y = ((2 * mouse_y * 0x7fff)
             / norm_full_vp_height) - 0x7fff;
    else
       scaled_screen_y = -0x8000; /* OOB */
@@ -2867,13 +2885,13 @@ bool video_driver_translate_coord_viewport(
    mouse_y           -= vp->y;
 
    if (mouse_x >= 0 && mouse_x <= norm_vp_width)
-      scaled_x        = ((2 * mouse_x * 0x7fff) 
+      scaled_x        = ((2 * mouse_x * 0x7fff)
             / norm_vp_width) - 0x7fff;
    else
       scaled_x        = -0x8000; /* OOB */
 
    if (mouse_y >= 0 && mouse_y <= norm_vp_height)
-      scaled_y        = ((2 * mouse_y * 0x7fff) 
+      scaled_y        = ((2 * mouse_y * 0x7fff)
             / norm_vp_height) - 0x7fff;
    else
       scaled_y        = -0x8000; /* OOB */
@@ -2899,7 +2917,7 @@ void video_driver_get_status(uint64_t *frame_count, bool * is_alive,
       bool *is_focused)
 {
    *frame_count = video_driver_frame_count;
-   *is_alive    = current_video ? 
+   *is_alive    = current_video ?
       current_video->alive(video_driver_data) : true;
    *is_focused  = video_driver_cb_has_focus();
 }
@@ -2981,7 +2999,7 @@ bool video_context_driver_find_next_driver(void)
  *
  * Initialize graphics context driver.
  *
- * Returns: graphics context driver if successfully initialized, 
+ * Returns: graphics context driver if successfully initialized,
  * otherwise NULL.
  **/
 static const gfx_ctx_driver_t *video_context_driver_init(
@@ -2989,74 +3007,30 @@ static const gfx_ctx_driver_t *video_context_driver_init(
       const gfx_ctx_driver_t *ctx,
       const char *ident,
       enum gfx_ctx_api api, unsigned major,
-      unsigned minor, bool hw_render_ctx)
+      unsigned minor, bool hw_render_ctx,
+      void **ctx_data)
 {
-   if (ctx->bind_api(data, api, major, minor))
+   video_frame_info_t video_info;
+
+   if (!ctx->bind_api(data, api, major, minor))
    {
-      video_frame_info_t video_info;
-      void       *ctx_data = NULL;
+      RARCH_WARN("Failed to bind API (#%u, version %u.%u)"
+            " on context driver \"%s\".\n",
+            (unsigned)api, major, minor, ctx->ident);
 
-      video_driver_build_info(&video_info);
-
-      ctx_data = ctx->init(&video_info, data);
-
-      if (!ctx_data)
-         return NULL;
-
-      if (ctx->bind_hw_render)
-         ctx->bind_hw_render(ctx_data,
-               video_info.shared_context && hw_render_ctx);
-
-      video_context_driver_set_data(ctx_data);
-
-      return ctx;
+      return NULL;
    }
 
-#ifndef _WIN32
-   RARCH_WARN("Failed to bind API (#%u, version %u.%u)"
-         " on context driver \"%s\".\n",
-         (unsigned)api, major, minor, ctx->ident);
-#endif
+   video_driver_build_info(&video_info);
 
-   return NULL;
-}
+   if (!(*ctx_data = ctx->init(&video_info, data)))
+      return NULL;
 
-/**
- * video_context_driver_find_driver:
- * @data                    : Input data.
- * @ident                   : Identifier of graphics context driver to find.
- * @api                     : API of higher-level graphics API.
- * @major                   : Major version number of higher-level graphics API.
- * @minor                   : Minor version number of higher-level graphics API.
- * @hw_render_ctx           : Request a graphics context driver capable of
- *                            hardware rendering?
- *
- * Finds graphics context driver and initializes.
- *
- * Returns: graphics context driver if found, otherwise NULL.
- **/
-static const gfx_ctx_driver_t *video_context_driver_find_driver(void *data,
-      const char *ident,
-      enum gfx_ctx_api api, unsigned major,
-      unsigned minor, bool hw_render_ctx)
-{
-   int i = find_video_context_driver_index(ident);
+   if (ctx->bind_hw_render)
+      ctx->bind_hw_render(*ctx_data,
+            video_info.shared_context && hw_render_ctx);
 
-   if (i >= 0)
-      return video_context_driver_init(data, gfx_ctx_drivers[i], ident,
-            api, major, minor, hw_render_ctx);
-
-   for (i = 0; gfx_ctx_drivers[i]; i++)
-   {
-      const gfx_ctx_driver_t *ctx =
-         video_context_driver_init(data, gfx_ctx_drivers[i], ident,
-            api, major, minor, hw_render_ctx);
-
-      if (ctx)
-         return ctx;
-   }
-
-   return NULL;
+   return ctx;
 }
 
 /**
@@ -3075,28 +3049,35 @@ static const gfx_ctx_driver_t *video_context_driver_find_driver(void *data,
  **/
 const gfx_ctx_driver_t *video_context_driver_init_first(void *data,
       const char *ident, enum gfx_ctx_api api, unsigned major,
-      unsigned minor, bool hw_render_ctx)
+      unsigned minor, bool hw_render_ctx, void **ctx_data)
 {
-   return video_context_driver_find_driver(data, ident, api,
-         major, minor, hw_render_ctx);
-}
+   int                i = find_video_context_driver_index(ident);
 
-bool video_context_driver_check_window(gfx_ctx_size_t *size_data)
-{
-   if (     video_context_data
-         && current_video_context.check_window)
+   if (i >= 0)
    {
-      bool is_shutdown = rarch_ctl(RARCH_CTL_IS_SHUTDOWN, NULL);
-      current_video_context.check_window(video_context_data,
-            size_data->quit,
-            size_data->resize,
-            size_data->width,
-            size_data->height,
-            is_shutdown);
-      return true;
+      const gfx_ctx_driver_t *ctx = video_context_driver_init(data, gfx_ctx_drivers[i], ident,
+            api, major, minor, hw_render_ctx, ctx_data);
+      if (ctx)
+      {
+         video_context_data = *ctx_data;
+         return ctx;
+      }
    }
 
-   return false;
+   for (i = 0; gfx_ctx_drivers[i]; i++)
+   {
+      const gfx_ctx_driver_t *ctx =
+         video_context_driver_init(data, gfx_ctx_drivers[i], ident,
+            api, major, minor, hw_render_ctx, ctx_data);
+
+      if (ctx)
+      {
+         video_context_data = *ctx_data;
+         return ctx;
+      }
+   }
+
+   return NULL;
 }
 
 bool video_context_driver_init_image_buffer(const video_info_t *data)
@@ -3133,14 +3114,6 @@ bool video_context_driver_get_video_output_next(void)
    if (!current_video_context.get_video_output_next)
       return false;
    current_video_context.get_video_output_next(video_context_data);
-   return true;
-}
-
-bool video_context_driver_bind_hw_render(bool *enable)
-{
-   if (!current_video_context.bind_hw_render)
-      return false;
-   current_video_context.bind_hw_render(video_context_data, *enable);
    return true;
 }
 
@@ -3181,11 +3154,18 @@ bool video_context_driver_get_video_output_size(gfx_ctx_size_t *size_data)
    return true;
 }
 
-bool video_context_driver_swap_interval(unsigned *interval)
+bool video_context_driver_swap_interval(int *interval)
 {
+   gfx_ctx_flags_t flags;
+   int current_interval                   = *interval;
+   settings_t *settings                   = config_get_ptr();
+   bool adaptive_vsync_enabled            = video_driver_get_all_flags(&flags, GFX_CTX_FLAGS_ADAPTIVE_VSYNC) && settings->bools.video_adaptive_vsync;
+
    if (!current_video_context.swap_interval)
       return false;
-   current_video_context.swap_interval(video_context_data, *interval);
+   if (adaptive_vsync_enabled && current_interval == 1)
+      current_interval = -1;
+   current_video_context.swap_interval(video_context_data, current_interval);
    return true;
 }
 
@@ -3211,14 +3191,26 @@ bool video_context_driver_get_metrics(gfx_ctx_metrics_t *metrics)
 
 bool video_context_driver_get_refresh_rate(float *refresh_rate)
 {
+   float refresh_holder      = 0;
+   
    if (!current_video_context.get_refresh_rate || !refresh_rate)
       return false;
    if (!video_context_data)
       return false;
-
-   if (refresh_rate)
-      *refresh_rate = 
-         current_video_context.get_refresh_rate(video_context_data);
+   
+   if (!video_driver_crt_switching_active)
+      if (refresh_rate)
+         *refresh_rate =  
+             current_video_context.get_refresh_rate(video_context_data);
+   
+   if (video_driver_crt_switching_active)
+   {
+      if (refresh_rate)
+         refresh_holder  =  
+             current_video_context.get_refresh_rate(video_context_data);
+      if (refresh_holder != video_driver_core_hz) /* Fix for incorrect interlace detsction -- HARD SET VSNC TO REQUIRED REFRESH FOR CRT*/
+         *refresh_rate = video_driver_core_hz; 
+   }
 
    return true;
 }
@@ -3226,7 +3218,7 @@ bool video_context_driver_get_refresh_rate(float *refresh_rate)
 bool video_context_driver_input_driver(gfx_ctx_input_t *inp)
 {
    settings_t *settings    = config_get_ptr();
-   const char *joypad_name = settings ? 
+   const char *joypad_name = settings ?
       settings->arrays.input_joypad_driver : NULL;
 
    if (!current_video_context.input_driver)
@@ -3279,15 +3271,6 @@ bool video_context_driver_get_video_size(gfx_ctx_mode_t *mode_info)
    return true;
 }
 
-bool video_context_driver_get_context_data(void *data)
-{
-   if (!current_video_context.get_context_data)
-      return false;
-   *(void**)data = current_video_context.get_context_data(
-         video_context_data);
-   return true;
-}
-
 bool video_context_driver_show_mouse(bool *bool_data)
 {
    if (!current_video_context.show_mouse)
@@ -3296,22 +3279,9 @@ bool video_context_driver_show_mouse(bool *bool_data)
    return true;
 }
 
-void video_context_driver_set_data(void *data)
+static bool video_context_driver_get_flags(gfx_ctx_flags_t *flags)
 {
-   video_context_data = data;
-}
-
-bool video_driver_get_flags(gfx_ctx_flags_t *flags)
-{
-   if (!flags || !video_driver_poke || !video_driver_poke->get_flags)
-      return false;
-   flags->flags = video_driver_poke->get_flags(video_driver_data);
-   return true;
-}
-
-bool video_context_driver_get_flags(gfx_ctx_flags_t *flags)
-{
-   if (!flags || !current_video_context.get_flags)
+   if (!current_video_context.get_flags)
       return false;
 
    if (deferred_video_context_driver_set_flags)
@@ -3324,6 +3294,34 @@ bool video_context_driver_get_flags(gfx_ctx_flags_t *flags)
    flags->flags = current_video_context.get_flags(video_context_data);
    return true;
 }
+
+static bool video_driver_get_flags(gfx_ctx_flags_t *flags)
+{
+   if (!video_driver_poke || !video_driver_poke->get_flags)
+      return false;
+   flags->flags = video_driver_poke->get_flags(video_driver_data);
+   return true;
+}
+
+bool video_driver_get_all_flags(gfx_ctx_flags_t *flags, enum display_flags flag)
+{
+   if (!flags)
+      return false;
+
+   if (video_driver_get_flags(flags))
+      if (BIT32_GET(flags->flags, flag))
+         return true;
+
+   flags->flags = 0;
+
+   if (video_context_driver_get_flags(flags))
+      if (BIT32_GET(flags->flags, flag))
+         return true;
+
+   return false;
+}
+
+
 
 bool video_context_driver_set_flags(gfx_ctx_flags_t *flags)
 {
@@ -3364,6 +3362,8 @@ enum gfx_ctx_api video_context_driver_get_api(void)
          return GFX_CTX_OPENGL_API;
       else if (string_is_equal(video_driver, "vulkan"))
          return GFX_CTX_VULKAN_API;
+      else if (string_is_equal(video_driver, "metal"))
+         return GFX_CTX_METAL_API;
 
       return GFX_CTX_NONE;
    }
@@ -3373,15 +3373,13 @@ enum gfx_ctx_api video_context_driver_get_api(void)
 
 bool video_driver_has_windowed(void)
 {
-#if defined(RARCH_CONSOLE) || defined(RARCH_MOBILE)
-   return false;
-#else
+#if !(defined(RARCH_CONSOLE) || defined(RARCH_MOBILE))
    if (video_driver_data && current_video->has_windowed)
       return current_video->has_windowed(video_driver_data);
    else if (video_context_data && current_video_context.has_windowed)
       return current_video_context.has_windowed(video_context_data);
-   return false;
 #endif
+   return false;
 }
 
 bool video_driver_cached_frame_has_valid_framebuffer(void)
@@ -3432,34 +3430,24 @@ static const shader_backend_t *video_shader_set_backend(
    return NULL;
 }
 
-void video_shader_driver_use(void *data)
+void video_shader_driver_use(video_shader_ctx_info_t *shader_info)
 {
    if (current_shader && current_shader->use)
-   {
-      video_shader_ctx_info_t *shader_info =
-         (video_shader_ctx_info_t*)data;
       current_shader->use(shader_info->data, current_shader_data,
             shader_info->idx, shader_info->set_active);
-   }
 }
 
-void video_shader_driver_set_parameter(void *data)
+void video_shader_driver_set_parameter(struct uniform_info *param)
 {
    if (current_shader && current_shader->set_uniform_parameter)
-   {
-      struct uniform_info *param = (struct uniform_info*)data;
       current_shader->set_uniform_parameter(current_shader_data,
             param, NULL);
-   }
 }
 
-void video_shader_driver_set_parameters(void *data)
+void video_shader_driver_set_parameters(video_shader_ctx_params_t *params)
 {
    if (current_shader && current_shader->set_params)
-   {
-      video_shader_ctx_params_t *params = (video_shader_ctx_params_t*)data;
       current_shader->set_params(params, current_shader_data);
-   }
 }
 
 bool video_shader_driver_get_prev_textures(
@@ -3495,6 +3483,9 @@ bool video_shader_driver_get_current_shader(video_shader_ctx_t *shader)
 bool video_shader_driver_direct_get_current_shader(
       video_shader_ctx_t *shader)
 {
+   if (!current_shader)
+      return false;
+
    shader->data = current_shader->get_current_shader(current_shader_data);
 
    return true;

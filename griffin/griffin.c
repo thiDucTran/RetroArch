@@ -150,18 +150,38 @@ ACHIEVEMENTS
 
 #include "../libretro-common/formats/json/jsonsax.c"
 #include "../network/net_http_special.c"
+
+#ifdef HAVE_NEW_CHEEVOS
+#include "../cheevos-new/cheevos.c"
+#include "../cheevos-new/badges.c"
+#include "../cheevos-new/fixup.c"
+#include "../cheevos-new/hash.c"
+#include "../cheevos-new/parser.c"
+
+#include "../deps/rcheevos/src/rcheevos/alloc.c"
+#include "../deps/rcheevos/src/rcheevos/condition.c"
+#include "../deps/rcheevos/src/rcheevos/condset.c"
+#include "../deps/rcheevos/src/rcheevos/expression.c"
+#include "../deps/rcheevos/src/rcheevos/format.c"
+#include "../deps/rcheevos/src/rcheevos/lboard.c"
+#include "../deps/rcheevos/src/rcheevos/operand.c"
+#include "../deps/rcheevos/src/rcheevos/term.c"
+#include "../deps/rcheevos/src/rcheevos/trigger.c"
+#include "../deps/rcheevos/src/rcheevos/value.c"
+#include "../deps/rcheevos/src/rurl/url.c"
+#else
 #include "../cheevos/cheevos.c"
 #include "../cheevos/badges.c"
-#include "../cheevos/var.c"
 #include "../cheevos/cond.c"
+#include "../cheevos/var.c"
+#endif
+
 #endif
 
 /*============================================================
 MD5
 ============================================================ */
-#if defined(HAVE_CHEEVOS) || (defined(HAVE_HTTPSERVER) && defined(HAVE_ZLIB))
 #include "../libretro-common/utils/md5.c"
-#endif
 
 /*============================================================
 CHEATS
@@ -793,6 +813,17 @@ AUDIO
 #include "../audio/drivers/nullaudio.c"
 
 /*============================================================
+MIDI
+============================================================ */
+#include "../midi/midi_driver.c"
+
+#include "../midi/drivers/null_midi.c"
+
+#ifdef HAVE_WINMM
+#include "../midi/drivers/winmm_midi.c"
+#endif
+
+/*============================================================
 DRIVERS
 ============================================================ */
 #include "../gfx/video_driver.c"
@@ -853,6 +884,12 @@ CORES
 ============================================================ */
 #ifdef HAVE_FFMPEG
 #include "../cores/libretro-ffmpeg/ffmpeg_core.c"
+#endif
+
+#if defined(HAVE_MPV)
+#if defined(HAVE_OPENGL) || defined(HAVE_OPENGLES)
+#include "../cores/libretro-mpv/mpv-libretro.c"
+#endif
 #endif
 
 #include "../cores/dynamic_dummy.c"
@@ -923,6 +960,8 @@ FRONTEND
 #include "../frontend/drivers/platform_psp.c"
 #elif defined(_3DS)
 #include "../frontend/drivers/platform_ctr.c"
+#elif defined(SWITCH) && defined(HAVE_LIBNX)
+#include "../frontend/drivers/platform_switch.c"
 #elif defined(XENON)
 #include "../frontend/drivers/platform_xenon.c"
 #elif defined(__QNX__)
@@ -996,6 +1035,7 @@ RETROARCH
 #include "../intl/msg_hash_chs.c"
 #include "../intl/msg_hash_cht.c"
 #include "../intl/msg_hash_ar.c"
+#include "../intl/msg_hash_el.c"
 #endif
 
 #include "../intl/msg_hash_us.c"
@@ -1025,11 +1065,11 @@ RECORDING
 /*============================================================
 THREAD
 ============================================================ */
-#if defined(HAVE_THREADS) && defined(XENON)
-#include "../thread/xenon_sdl_threads.c"
-#elif defined(HAVE_THREADS)
+#if defined(HAVE_THREADS)
 
-#if defined(PSP)
+#if defined(XENON)
+#include "../thread/xenon_sdl_threads.c"
+#elif defined(PSP)
 #include "../deps/pthreads/platform/helper/tls-helper.c"
 #include "../deps/pthreads/platform/psp/psp_osal.c"
 #include "../deps/pthreads/pte_main.c"
@@ -1055,7 +1095,6 @@ THREAD
 #include "../gfx/video_thread_wrapper.c"
 #include "../audio/audio_thread_wrapper.c"
 #endif
-
 
 /*============================================================
 NETPLAY
@@ -1119,7 +1158,6 @@ MENU
 #ifdef HAVE_MENU
 #include "../menu/menu_driver.c"
 #include "../menu/menu_input.c"
-#include "../menu/menu_event.c"
 #include "../menu/menu_entries.c"
 #include "../menu/menu_setting.c"
 #include "../menu/menu_cbs.c"
@@ -1199,6 +1237,10 @@ MENU
 #include "../menu/drivers_display/menu_display_wiiu.c"
 #endif
 
+#if defined(HAVE_LIBNX)
+#include "../menu/drivers_display/menu_display_switch.c"
+#endif
+
 #ifdef HAVE_CACA
 #include "../menu/drivers_display/menu_display_caca.c"
 #endif
@@ -1218,9 +1260,13 @@ MENU
 #include "../menu/drivers/rgui.c"
 #endif
 
-#if defined(HAVE_OPENGL) || defined(HAVE_VITA2D) || defined(_3DS) || defined(_MSC_VER) || defined(__wiiu__)
+#if defined(HAVE_OPENGL) || defined(HAVE_VITA2D) || defined(_3DS) || defined(_MSC_VER) || defined(__wiiu__) || defined(HAVE_METAL)
 #ifdef HAVE_XMB
 #include "../menu/drivers/xmb.c"
+#endif
+
+#ifdef HAVE_STRIPES
+#include "../menu/drivers/stripes.c"
 #endif
 
 #ifdef HAVE_MATERIALUI
@@ -1395,4 +1441,87 @@ HTTP SERVER
 
 #if defined(HAVE_DISCORD)
 #include "../discord/discord.c"
+#endif
+
+/*============================================================
+SSL
+============================================================ */
+#if defined(HAVE_SSL)
+#if defined(HAVE_NETWORKING)
+#include "../deps/mbedtls/aes.c"
+#include "../deps/mbedtls/aesni.c"
+#include "../deps/mbedtls/arc4.c"
+#include "../deps/mbedtls/asn1parse.c"
+#include "../deps/mbedtls/asn1write.c"
+#include "../deps/mbedtls/base64.c"
+#include "../deps/mbedtls/bignum.c"
+#include "../deps/mbedtls/blowfish.c"
+#include "../deps/mbedtls/camellia.c"
+#include "../deps/mbedtls/ccm.c"
+#include "../deps/mbedtls/cipher.c"
+#include "../deps/mbedtls/cipher_wrap.c"
+#include "../deps/mbedtls/cmac.c"
+#include "../deps/mbedtls/ctr_drbg.c"
+#include "../deps/mbedtls/des.c"
+#include "../deps/mbedtls/dhm.c"
+#include "../deps/mbedtls/ecdh.c"
+#include "../deps/mbedtls/ecdsa.c"
+#include "../deps/mbedtls/ecjpake.c"
+#include "../deps/mbedtls/ecp.c"
+#include "../deps/mbedtls/ecp_curves.c"
+#include "../deps/mbedtls/entropy.c"
+#include "../deps/mbedtls/entropy_poll.c"
+#include "../deps/mbedtls/error.c"
+#include "../deps/mbedtls/gcm.c"
+#include "../deps/mbedtls/havege.c"
+#include "../deps/mbedtls/hmac_drbg.c"
+#include "../deps/mbedtls/md.c"
+#include "../deps/mbedtls/md2.c"
+#include "../deps/mbedtls/md4.c"
+#include "../deps/mbedtls/md5.c"
+#include "../deps/mbedtls/md_wrap.c"
+#include "../deps/mbedtls/memory_buffer_alloc.c"
+#include "../deps/mbedtls/oid.c"
+#include "../deps/mbedtls/padlock.c"
+#include "../deps/mbedtls/pem.c"
+#include "../deps/mbedtls/pk.c"
+#include "../deps/mbedtls/pk_wrap.c"
+#include "../deps/mbedtls/pkcs12.c"
+#include "../deps/mbedtls/pkcs5.c"
+#include "../deps/mbedtls/pkparse.c"
+#include "../deps/mbedtls/pkwrite.c"
+#include "../deps/mbedtls/platform.c"
+#include "../deps/mbedtls/ripemd160.c"
+#include "../deps/mbedtls/rsa.c"
+#include "../deps/mbedtls/sha1.c"
+#include "../deps/mbedtls/sha256.c"
+#include "../deps/mbedtls/sha512.c"
+#include "../deps/mbedtls/threading.c"
+#include "../deps/mbedtls/timing.c"
+#include "../deps/mbedtls/version.c"
+#include "../deps/mbedtls/version_features.c"
+#include "../deps/mbedtls/xtea.c"
+
+#include "../deps/mbedtls/certs.c"
+#include "../deps/mbedtls/pkcs11.c"
+#include "../deps/mbedtls/x509.c"
+#include "../deps/mbedtls/x509_create.c"
+#include "../deps/mbedtls/x509_crl.c"
+#include "../deps/mbedtls/x509_crt.c"
+#include "../deps/mbedtls/x509_csr.c"
+#include "../deps/mbedtls/x509write_crt.c"
+#include "../deps/mbedtls/x509write_csr.c"
+
+#include "../deps/mbedtls/debug.c"
+#include "../deps/mbedtls/net_sockets.c"
+#include "../deps/mbedtls/ssl_cache.c"
+#include "../deps/mbedtls/ssl_ciphersuites.c"
+#include "../deps/mbedtls/ssl_cli.c"
+#include "../deps/mbedtls/ssl_cookie.c"
+#include "../deps/mbedtls/ssl_srv.c"
+#include "../deps/mbedtls/ssl_ticket.c"
+#include "../deps/mbedtls/ssl_tls.c"
+
+#include "../libretro-common/net/net_socket_ssl.c"
+#endif
 #endif

@@ -7,6 +7,9 @@ MSG_HASH(
       "Compilador desconhecido"
       )
 MSG_HASH(
+    MSG_NATIVE,
+    "Native")
+MSG_HASH(
       MSG_DEVICE_DISCONNECTED_FROM_PORT,
       "Dispositivo desconectado da porta"
       )
@@ -799,7 +802,7 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_LOAD_STATE_KEY,
       "Carregar estado")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_MENU_TOGGLE,
       "Mostrar/esconder menu")
-MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_MOVIE_RECORD_TOGGLE,
+MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_BSV_RECORD_TOGGLE,
       "Iniciar/parar gravação de filme")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_MUTE,
       "Silenciar som/remover silêncio")
@@ -1197,8 +1200,13 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_RDB_ENTRY_START_CONTENT,
       "Iniciar conteúdo")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_RDB_ENTRY_TGDB_RATING,
       "Classificação TGDB")
+#ifdef HAVE_LAKKA_SWITCH
+MSG_HASH(MENU_ENUM_LABEL_VALUE_REBOOT,
+      "Reinicializar (RCM)")
+#else
 MSG_HASH(MENU_ENUM_LABEL_VALUE_REBOOT,
       "Reinicializar")
+#endif
 MSG_HASH(MENU_ENUM_LABEL_VALUE_RECORDING_CONFIG_DIRECTORY,
       "Pasta de armazenamento das configuração de gravação")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_RECORDING_OUTPUT_DIRECTORY,
@@ -1387,6 +1395,8 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_FFMPEG_SUPPORT,
       "Suporte de FFmpeg")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_FREETYPE_SUPPORT,
       "Suporte de FreeType")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_STB_TRUETYPE_SUPPORT,
+      "Suporte de STB TrueType")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_FRONTEND_IDENTIFIER,
       "Identificador da interface visual")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_FRONTEND_NAME,
@@ -2505,7 +2515,7 @@ MSG_HASH(
       MENU_ENUM_SUBLABEL_VIDEO_FORCE_SRGB_DISABLE,
       "Desativar o suporte de sRGB FBO. Alguns controladores Intel OpenGL para o Windows possuem problemas de vídeo em sRGB FBO, se o mesmo estiver ativo. Ao ativar esta opção, poderá resolver esse problema."
       )
-MSG_HASH( 
+MSG_HASH(
       MENU_ENUM_SUBLABEL_VIDEO_FULLSCREEN,
       "Executar em ecrã completo. Esta definição poderá ser alterada a qualquer momento."
       )
@@ -3110,6 +3120,10 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_SHOW_REBOOT,
       "Mostrar 'Reiniciar'")
 MSG_HASH(MENU_ENUM_SUBLABEL_MENU_SHOW_REBOOT,
       "Mostrar/esconder a opção 'Reiniciar'.")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_SHOW_SHUTDOWN,
+      "Show Shutdown")
+MSG_HASH(MENU_ENUM_SUBLABEL_MENU_SHOW_SHUTDOWN,
+      "Show/hide the 'Shutdown' option.")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_QUICK_MENU_VIEWS_SETTINGS,
       "Menu rápido")
 MSG_HASH(MENU_ENUM_SUBLABEL_QUICK_MENU_VIEWS_SETTINGS,
@@ -3196,10 +3210,13 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_RGUI_BORDER_FILLER_THICKNESS_ENABLE,
       "Enable border filler thickness")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_RGUI_BACKGROUND_FILLER_THICKNESS_ENABLE,
       "Enable background filler thickness")
-MSG_HASH(MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION, "For 15 kHz CRT displays only. Attempts to use exact core/game resolution and refresh rate.")
-MSG_HASH(MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION, "CRT SwitchRes") 
-MSG_HASH(MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION_SUPER, "When CRT SwitchRes is enabled, force ultrawide horizontal resolution to minimize mode switching.")
-MSG_HASH(MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION_SUPER, "CRT Super Resolution") 
+MSG_HASH(MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION, "For CRT displays only. Attempts to use exact core/game resolution and refresh rate.")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION, "CRT SwitchRes")
+MSG_HASH(
+      MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION_SUPER,
+      "Switch among native and ultrawide super resolutions."
+      )
+MSG_HASH(MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION_SUPER, "CRT Super Resolution")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_CONTENT_SHOW_REWIND,
       "Show Rewind Settings")
 MSG_HASH(MENU_ENUM_SUBLABEL_CONTENT_SHOW_REWIND,
@@ -3258,6 +3275,14 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_QT_MENU_SEARCH_CLEAR,
       "Clear")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_IN_MENU,
       "In-Menu")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_IN_GAME,
+      "In-Game")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_IN_GAME_PAUSED,
+      "In-Game (Paused)")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_STATUS_PLAYING,
+      "Playing")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_STATUS_PAUSED,
+      "Paused")
 MSG_HASH(
       MENU_ENUM_LABEL_VALUE_DISCORD_ALLOW,
       "Enable Discord"
@@ -3266,3 +3291,123 @@ MSG_HASH(
       MENU_ENUM_SUBLABEL_DISCORD_ALLOW,
       "Enable or disable Discord support. Will not work with the browser version, only native desktop client."
       )
+MSG_HASH(MENU_ENUM_LABEL_VALUE_POWER_MANAGEMENT_SETTINGS,
+      "Power Management")
+MSG_HASH(MENU_ENUM_SUBLABEL_POWER_MANAGEMENT_SETTINGS,
+      "Change power management settings.")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_SUSTAINED_PERFORMANCE_MODE,
+      "Sustained Performance Mode")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_MPV_SUPPORT,
+      "mpv support")
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_VIDEO_ADAPTIVE_VSYNC,
+    "Adaptive Vsync"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_VIDEO_ADAPTIVE_VSYNC,
+    "V-Sync is enabled until performance falls below the target refresh rate. Can minimize stuttering when performance falls below realtime, and can be more energy efficient."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_CRT_SWITCHRES_SETTINGS,
+    "CRT SwitchRes"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_CRT_SWITCHRES_SETTINGS,
+    "Output native, low-resolution signals for use with CRT displays."
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_CRT_SWITCH_X_AXIS_CENTERING,
+    "Cycle through these options if the image is not centered properly on the display."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_CRT_SWITCH_X_AXIS_CENTERING,
+    "X-Axis Centering"
+    )
+MSG_HASH(
+      MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION_USE_CUSTOM_REFRESH_RATE,
+      "Use a custom refresh rate specified in the config file if needed.")
+MSG_HASH(
+      MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION_USE_CUSTOM_REFRESH_RATE,
+      "Use Custom Refresh Rate")
+MSG_HASH(
+      MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION_OUTPUT_DISPLAY_ID,
+      "Select the output port connected to the CRT display.")
+MSG_HASH(
+      MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION_OUTPUT_DISPLAY_ID,
+      "Output Display ID")
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_QUICK_MENU_START_RECORDING,
+    "Start Recording"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_QUICK_MENU_START_RECORDING,
+    "Starts recording."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_QUICK_MENU_STOP_RECORDING,
+    "Stop Recording"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_QUICK_MENU_STOP_RECORDING,
+    "Stops recording."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_QUICK_MENU_START_STREAMING,
+    "Start Streaming"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_QUICK_MENU_START_STREAMING,
+    "Starts streaming."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_QUICK_MENU_STOP_STREAMING,
+    "Stop Streaming"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_QUICK_MENU_STOP_STREAMING,
+    "Stops streaming."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_VIDEO_RECORD_QUALITY,
+    "Record Quality"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_VIDEO_STREAM_QUALITY,
+    "Stream Quality"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_STREAMING_URL,
+    "Streaming URL"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_UDP_STREAM_PORT,
+    "UDP Stream Port"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_ACCOUNTS_TWITCH,
+    "Twitch"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_ACCOUNTS_YOUTUBE,
+    "YouTube"
+    )
+MSG_HASH(MENU_ENUM_LABEL_VALUE_TWITCH_STREAM_KEY,
+      "Twitch Stream Key")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_YOUTUBE_STREAM_KEY,
+      "YouTube Stream Key")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_STREAMING_MODE,
+      "Streaming Mode")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_STREAMING_TITLE,
+      "Title of Stream")
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_INPUT_SPLIT_JOYCON,
+    "Split Joy-Con"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_RESET_TO_DEFAULT_CONFIG,
+    "Reset To Defaults"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_RESET_TO_DEFAULT_CONFIG,
+    "Reset the current configuration to default values."
+    )

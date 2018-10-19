@@ -45,7 +45,7 @@ RETRO_BEGIN_DECLS
 #endif
 
 #ifndef MAX_CHEAT_COUNTERS
-#define MAX_CHEAT_COUNTERS 100
+#define MAX_CHEAT_COUNTERS 6000
 #endif
 
 #define MENU_SETTINGS_CORE_INFO_NONE             0xffff
@@ -87,7 +87,6 @@ enum menu_state_changes
 enum rarch_menu_ctl_state
 {
    RARCH_MENU_CTL_NONE = 0,
-   RARCH_MENU_CTL_REFRESH,
    RARCH_MENU_CTL_SET_PENDING_QUICK_MENU,
    RARCH_MENU_CTL_SET_PENDING_QUIT,
    RARCH_MENU_CTL_SET_PENDING_SHUTDOWN,
@@ -103,12 +102,6 @@ enum rarch_menu_ctl_state
    RARCH_MENU_CTL_OWNS_DRIVER,
    RARCH_MENU_CTL_FIND_DRIVER,
    RARCH_MENU_CTL_LIST_FREE,
-   RARCH_MENU_CTL_LIST_SET_SELECTION,
-   RARCH_MENU_CTL_LIST_GET_SELECTION,
-   RARCH_MENU_CTL_LIST_GET_SIZE,
-   RARCH_MENU_CTL_LIST_GET_ENTRY,
-   RARCH_MENU_CTL_LIST_CACHE,
-   RARCH_MENU_CTL_LIST_INSERT,
    RARCH_MENU_CTL_ENVIRONMENT,
    RARCH_MENU_CTL_DRIVER_DATA_GET,
    RARCH_MENU_CTL_POINTER_TAP,
@@ -147,6 +140,12 @@ enum menu_settings_type
    MENU_NETPLAY_TAB,
    MENU_ADD_TAB,
    MENU_PLAYLISTS_TAB,
+   MENU_SETTING_DROPDOWN_ITEM,
+   MENU_SETTING_DROPDOWN_SETTING_CORE_OPTIONS_ITEM,
+   MENU_SETTING_DROPDOWN_SETTING_STRING_OPTIONS_ITEM,
+   MENU_SETTING_DROPDOWN_SETTING_FLOAT_ITEM,
+   MENU_SETTING_DROPDOWN_SETTING_INT_ITEM,
+   MENU_SETTING_DROPDOWN_SETTING_UINT_ITEM,
    MENU_SETTING_NO_ITEM,
    MENU_SETTING_DRIVER,
    MENU_SETTING_ACTION,
@@ -172,10 +171,8 @@ enum menu_settings_type
    MENU_SETTING_ACTION_RESUME_ACHIEVEMENTS,
    MENU_WIFI,
    MENU_ROOM,
-/*
    MENU_ROOM_LAN,
-   MENU_ROOM_MITM,
-*/
+   MENU_ROOM_RELAY,
    MENU_NETPLAY_LAN_SCAN,
    MENU_INFO_MESSAGE,
    MENU_SETTINGS_SHADER_PARAMETER_0,
@@ -233,6 +230,13 @@ enum menu_settings_type
 
    MENU_SETTINGS_SUBSYSTEM_ADD,
    MENU_SETTINGS_SUBSYSTEM_LAST = MENU_SETTINGS_SUBSYSTEM_ADD + RARCH_MAX_SUBSYSTEMS,
+   MENU_SETTINGS_CHEAT_MATCH,
+
+#ifdef HAVE_LAKKA_SWITCH
+   MENU_SET_SWITCH_GPU_PROFILE,
+   MENU_SET_SWITCH_BRIGHTNESS,
+   MENU_SET_SWITCH_CPU_PROFILE,
+#endif
 
    MENU_SETTINGS_LAST
 };
@@ -278,6 +282,7 @@ enum xmb_icon_theme
    XMB_ICON_THEME_CUSTOM,
    XMB_ICON_THEME_RETROSYSTEM,
    XMB_ICON_THEME_MONOCHROME_INVERTED,
+   XMB_ICON_THEME_AUTOMATIC,
    XMB_ICON_THEME_LAST
 };
 
@@ -305,6 +310,7 @@ enum menu_display_driver_type
    MENU_VIDEO_DRIVER_GENERIC = 0,
    MENU_VIDEO_DRIVER_OPENGL,
    MENU_VIDEO_DRIVER_VULKAN,
+   MENU_VIDEO_DRIVER_METAL,
    MENU_VIDEO_DRIVER_DIRECT3D8,
    MENU_VIDEO_DRIVER_DIRECT3D9,
    MENU_VIDEO_DRIVER_DIRECT3D10,
@@ -314,7 +320,9 @@ enum menu_display_driver_type
    MENU_VIDEO_DRIVER_CTR,
    MENU_VIDEO_DRIVER_WIIU,
    MENU_VIDEO_DRIVER_CACA,
+   MENU_VIDEO_DRIVER_SIXEL,
    MENU_VIDEO_DRIVER_GDI,
+   MENU_VIDEO_DRIVER_SWITCH,
    MENU_VIDEO_DRIVER_VGA
 };
 
@@ -374,6 +382,9 @@ typedef struct menu_display_ctx_driver
    enum menu_display_driver_type type;
    const char *ident;
    bool handles_transform;
+   /* Enables and disables scissoring */
+   void (*scissor_begin)(video_frame_info_t *video_info, int x, int y, unsigned width, unsigned height);
+   void (*scissor_end)(video_frame_info_t *video_info);
 } menu_display_ctx_driver_t;
 
 
@@ -453,19 +464,13 @@ typedef struct menu_display_ctx_datetime
    unsigned time_mode;
 } menu_display_ctx_datetime_t;
 
-typedef struct menu_display_ctx_font
-{
-   const char *path;
-   float size;
-} menu_display_ctx_font_t;
-
 typedef struct menu_ctx_driver
 {
    /* Set a framebuffer texture. This is used for instance by RGUI. */
    void  (*set_texture)(void);
    /* Render a messagebox to the screen. */
    void  (*render_messagebox)(void *data, const char *msg);
-   int   (*iterate)(void *data, void *userdata, enum menu_action action);
+   int   (*iterate)(menu_handle_t *menu, void *userdata, enum menu_action action);
    void  (*render)(void *data, bool is_idle);
    void  (*frame)(void *data, video_frame_info_t *video_info);
    /* Initializes the menu driver. (setup) */
@@ -649,7 +654,9 @@ bool menu_driver_is_alive(void);
 
 bool menu_driver_iterate(menu_ctx_iterate_t *iterate);
 
-bool menu_driver_list_clear(void *data);
+bool menu_driver_list_clear(file_list_t *list);
+
+bool menu_driver_list_cache(menu_ctx_list_t *list);
 
 void menu_driver_navigation_set(bool scroll);
 
@@ -663,16 +670,28 @@ void menu_driver_set_thumbnail_system(char *s, size_t len);
 
 void menu_driver_set_thumbnail_content(char *s, size_t len);
 
+bool menu_driver_list_insert(menu_ctx_list_t *list);
+
+bool menu_driver_list_set_selection(file_list_t *list);
+
+bool menu_driver_list_get_selection(menu_ctx_list_t *list);
+
+bool menu_driver_list_get_entry(menu_ctx_list_t *list);
+
+bool menu_driver_list_get_size(menu_ctx_list_t *list);
+
 size_t menu_navigation_get_selection(void);
 
 void menu_navigation_set_selection(size_t val);
-
 
 enum menu_toggle_reason menu_display_toggle_get_reason(void);
 void menu_display_toggle_set_reason(enum menu_toggle_reason reason);
 
 void menu_display_blend_begin(video_frame_info_t *video_info);
 void menu_display_blend_end(video_frame_info_t *video_info);
+
+void menu_display_scissor_begin(video_frame_info_t *video_info, int x, int y, unsigned width, unsigned height);
+void menu_display_scissor_end(video_frame_info_t *video_info);
 
 void menu_display_font_free(font_data_t *font);
 
@@ -728,6 +747,14 @@ void menu_display_draw_gradient(
 void menu_display_draw_quad(
       video_frame_info_t *video_info,
       int x, int y, unsigned w, unsigned h,
+      unsigned width, unsigned height,
+      float *color);
+void menu_display_draw_polygon(
+      video_frame_info_t *video_info,
+      int x1, int y1,
+      int x2, int y2,
+      int x3, int y3,
+      int x4, int y4,
       unsigned width, unsigned height,
       float *color);
 void menu_display_draw_texture(
@@ -795,12 +822,15 @@ void menu_display_reset_textures_list(
 int menu_display_osk_ptr_at_pos(void *data, int x, int y,
       unsigned width, unsigned height);
 
+bool menu_display_driver_exists(const char *s);
+
 void menu_driver_destroy(void);
 
 extern uintptr_t menu_display_white_texture;
 
 extern menu_display_ctx_driver_t menu_display_ctx_gl;
 extern menu_display_ctx_driver_t menu_display_ctx_vulkan;
+extern menu_display_ctx_driver_t menu_display_ctx_metal;
 extern menu_display_ctx_driver_t menu_display_ctx_d3d8;
 extern menu_display_ctx_driver_t menu_display_ctx_d3d9;
 extern menu_display_ctx_driver_t menu_display_ctx_d3d10;
@@ -812,6 +842,8 @@ extern menu_display_ctx_driver_t menu_display_ctx_wiiu;
 extern menu_display_ctx_driver_t menu_display_ctx_caca;
 extern menu_display_ctx_driver_t menu_display_ctx_gdi;
 extern menu_display_ctx_driver_t menu_display_ctx_vga;
+extern menu_display_ctx_driver_t menu_display_ctx_switch;
+extern menu_display_ctx_driver_t menu_display_ctx_sixel;
 extern menu_display_ctx_driver_t menu_display_ctx_null;
 
 extern menu_ctx_driver_t menu_ctx_xui;
@@ -819,6 +851,7 @@ extern menu_ctx_driver_t menu_ctx_rgui;
 extern menu_ctx_driver_t menu_ctx_mui;
 extern menu_ctx_driver_t menu_ctx_nuklear;
 extern menu_ctx_driver_t menu_ctx_xmb;
+extern menu_ctx_driver_t menu_ctx_stripes;
 extern menu_ctx_driver_t menu_ctx_zarch;
 extern menu_ctx_driver_t menu_ctx_null;
 

@@ -7,6 +7,9 @@ MSG_HASH(
       "Compilatore sconosciuto"
       )
 MSG_HASH(
+    MSG_NATIVE,
+    "Native")
+MSG_HASH(
       MSG_DEVICE_DISCONNECTED_FROM_PORT,
       "Dispositivo disconnesso dalla porta"
       )
@@ -713,6 +716,8 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_BIND_DEFAULT_ALL,
       "Bind Default All")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_BIND_TIMEOUT,
       "Bind Timeout")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_BIND_HOLD,
+      "Bind Hold")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_DESCRIPTOR_HIDE_UNBOUND,
       "Nascondi i descrittori di input di core non legati")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_DESCRIPTOR_LABEL_SHOW,
@@ -819,7 +824,7 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_LOAD_STATE_KEY,
       "Pulsante Carica Stato")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_MENU_TOGGLE,
       "Pulsante per il Menu")
-MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_MOVIE_RECORD_TOGGLE,
+MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_BSV_RECORD_TOGGLE,
       "Pulsante registratore Film")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_MUTE,
       "Pulsante per disattivare l'audio ")
@@ -1229,8 +1234,13 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_RDB_ENTRY_START_CONTENT,
       "Avvia il contenuto")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_RDB_ENTRY_TGDB_RATING,
       "Valutazione TGDB ")
+#ifdef HAVE_LAKKA_SWITCH
+MSG_HASH(MENU_ENUM_LABEL_VALUE_REBOOT,
+      "Riavvia (RCM)")
+#else
 MSG_HASH(MENU_ENUM_LABEL_VALUE_REBOOT,
       "Riavvia")
+#endif
 MSG_HASH(MENU_ENUM_LABEL_VALUE_RECORDING_CONFIG_DIRECTORY,
       "Configurazione per la registrazione")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_RECORDING_OUTPUT_DIRECTORY,
@@ -1439,6 +1449,8 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_FFMPEG_SUPPORT,
       "Supporto FFmpeg ")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_FREETYPE_SUPPORT,
       "Supporto FreeType ")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_STB_TRUETYPE_SUPPORT,
+      "Supporto STB TrueType ")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_FRONTEND_IDENTIFIER,
       "Identificatore frontend")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_FRONTEND_NAME,
@@ -2198,7 +2210,7 @@ MSG_HASH(MSG_PAUSED,
 MSG_HASH(MSG_PROGRAM,
       "RetroArch")
 MSG_HASH(MSG_READING_FIRST_DATA_TRACK,
-      "Reading first data track...")
+      "Lettura in corso della prima traccia di dati...")
 MSG_HASH(MSG_RECEIVED,
       "ricevuto")
 MSG_HASH(MSG_RECORDING_TERMINATED_DUE_TO_RESIZE,
@@ -2244,9 +2256,9 @@ MSG_HASH(MSG_REWIND_REACHED_END,
 MSG_HASH(MSG_SAVED_NEW_CONFIG_TO,
       "Salvata la nuova configurazione su")
 MSG_HASH(MSG_SAVED_STATE_TO_SLOT,
-      "Saved state to slot #%d.")
+      "Stato salvato nello slot #%d.")
 MSG_HASH(MSG_SAVED_STATE_TO_SLOT_AUTO,
-      "Saved state to slot #-1 (auto).")
+      "Stato salvato nello slot #-1 (auto).")
 MSG_HASH(MSG_SAVED_SUCCESSFULLY_TO,
       "Salvato con successo su")
 MSG_HASH(MSG_SAVING_RAM_TYPE,
@@ -2514,11 +2526,11 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_NETPLAY_LOAD_CONTENT_MANUALLY,
       "Non è possibile trovare un core o un file di contenuto adatto, caricare manualmente.")
 MSG_HASH(
       MENU_ENUM_LABEL_VALUE_BROWSE_URL_LIST,
-      "Browse URL"
+      "Sfoglia URL"
       )
 MSG_HASH(
       MENU_ENUM_LABEL_VALUE_BROWSE_URL,
-      "URL Path"
+      "Percorso URL"
       )
 MSG_HASH(
       MENU_ENUM_LABEL_VALUE_BROWSE_START,
@@ -2964,7 +2976,7 @@ MSG_HASH(MENU_ENUM_SUBLABEL_DISK_IMAGE_APPEND,
 MSG_HASH(MENU_ENUM_SUBLABEL_MENU_ENUM_THROTTLE_FRAMERATE,
       "Assicura che i fotogrammi siano attivi all'interno del menu.")
 MSG_HASH(MENU_ENUM_SUBLABEL_XMB_LAYOUT,
-      "Select a different layout for the XMB interface.")
+      "Seleziona un layout diverso per l'interfaccia XMB.")
 MSG_HASH(MENU_ENUM_SUBLABEL_XMB_THEME,
       "Seleziona un tema diverso per l'icona. Le modifiche avranno effetto dopo il riavvio del programma.")
 MSG_HASH(MENU_ENUM_SUBLABEL_XMB_SHADOWS_ENABLE,
@@ -3233,6 +3245,10 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_SHOW_REBOOT,
       "Visualizza Riavvia")
 MSG_HASH(MENU_ENUM_SUBLABEL_MENU_SHOW_REBOOT,
       "Mostra/Nasconde l'opzione 'Riavvia'.")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_SHOW_SHUTDOWN,
+      "Visualizza spegnimento")
+MSG_HASH(MENU_ENUM_SUBLABEL_MENU_SHOW_SHUTDOWN,
+      "Mostra/Nasconde l'opzione 'Spegnimento'")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_QUICK_MENU_VIEWS_SETTINGS,
       "Menu rapido")
 MSG_HASH(MENU_ENUM_SUBLABEL_QUICK_MENU_VIEWS_SETTINGS,
@@ -3319,10 +3335,13 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_RGUI_BORDER_FILLER_THICKNESS_ENABLE,
       "Attiva lo spessore del riempimento del bordo")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_RGUI_BACKGROUND_FILLER_THICKNESS_ENABLE,
       "Abilita lo spessore del riempimento dello sfondo")
-MSG_HASH(MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION, "Solo per schermi CRT a 15 kHz. Tenta di utilizzare la risoluzione esatta core/gioco e la frequenza di aggiornamento.")
-MSG_HASH(MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION, "CRT SwitchRes") 
-MSG_HASH(MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION_SUPER, "Quando CRT SwitchRes è abilitato, forza la risoluzione orizzontale ultrawide per minimizzare il cambio di modalità.")
-MSG_HASH(MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION_SUPER, "CRT Super Risoluzione") 
+MSG_HASH(MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION, "Solo per schermi CRT. Tenta di utilizzare la risoluzione esatta core/gioco e la frequenza di aggiornamento.")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION, "CRT SwitchRes")
+MSG_HASH(
+      MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION_SUPER,
+      "Switch among native and ultrawide super resolutions."
+      )
+MSG_HASH(MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION_SUPER, "CRT Super Risoluzione")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_CONTENT_SHOW_REWIND,
       "Mostra impostazioni di riavvolgimento")
 MSG_HASH(MENU_ENUM_SUBLABEL_CONTENT_SHOW_REWIND,
@@ -3380,7 +3399,15 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_DETECT_CORE_LIST_OK_CURRENT_CORE,
 MSG_HASH(MENU_ENUM_LABEL_VALUE_QT_MENU_SEARCH_CLEAR,
       "Cancella")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_IN_MENU,
-      "In-Menu")
+      "Nel Menu")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_IN_GAME,
+      "Nel Gioco")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_IN_GAME_PAUSED,
+      "Nel Gioco (In Pausa)")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_STATUS_PLAYING,
+      "Playing")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_STATUS_PAUSED,
+      "In Pausa")
 MSG_HASH(
       MENU_ENUM_LABEL_VALUE_DISCORD_ALLOW,
       "Abilita Discord"
@@ -3389,3 +3416,131 @@ MSG_HASH(
       MENU_ENUM_SUBLABEL_DISCORD_ALLOW,
       "Abilita o disabilita il supporto Discord. Non funzionerà con la versione del browser, solo con desktop client nativi."
       )
+MSG_HASH(MENU_ENUM_LABEL_VALUE_POWER_MANAGEMENT_SETTINGS,
+      "Gestione dell'alimentazione")
+MSG_HASH(MENU_ENUM_SUBLABEL_POWER_MANAGEMENT_SETTINGS,
+      "Modifica le impostazioni di gestione dell'alimentazione.")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_SUSTAINED_PERFORMANCE_MODE,
+      "Modalità delle Prestazioni Sostenute")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_MPV_SUPPORT,
+      "supporto mpv ")
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_VIDEO_ADAPTIVE_VSYNC,
+    "Adaptive Vsync"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_VIDEO_ADAPTIVE_VSYNC,
+    "V-Sync è abilitato fino a quando le prestazioni non scendono al di sotto della frequenza di aggiornamento. Può ridurre alcuni problemi quando le prestazioni scendono al di sotto del tempo reale e può essere più efficiente dal punto di vista energetico."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_CRT_SWITCHRES_SETTINGS,
+    "CRT SwitchRes"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_CRT_SWITCHRES_SETTINGS,
+    "Emissione di segnali nativi a bassa risoluzione per l'uso con display CRT."
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_CRT_SWITCH_X_AXIS_CENTERING,
+    "Utilizzare queste opzioni se l'immagine non è centrata correttamente sul display."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_CRT_SWITCH_X_AXIS_CENTERING,
+    "Centraggio dell'asse X"
+    )
+MSG_HASH(
+      MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION_USE_CUSTOM_REFRESH_RATE,
+      "Utilizzare una frequenza di aggiornamento personalizzata specificata nel file di configurazione, se necessario.")
+MSG_HASH(
+      MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION_USE_CUSTOM_REFRESH_RATE,
+      "Utilizza la frequenza di aggiornamento personalizzata")
+MSG_HASH(
+      MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION_OUTPUT_DISPLAY_ID,
+      "Seleziona la porta di uscita collegata al display CRT.")
+MSG_HASH(
+      MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION_OUTPUT_DISPLAY_ID,
+      "Uscita Display ID")
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_QUICK_MENU_START_RECORDING,
+    "Avviare la registrazione"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_QUICK_MENU_START_RECORDING,
+    "Avvia la registrazione."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_QUICK_MENU_STOP_RECORDING,
+    "Interrompere la registrazione"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_QUICK_MENU_STOP_RECORDING,
+    "Interrompe la registrazione."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_QUICK_MENU_START_STREAMING,
+    "Avviare lo Streaming"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_QUICK_MENU_START_STREAMING,
+    "Inizia lo streaming."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_QUICK_MENU_STOP_STREAMING,
+    "Interrompi streaming"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_QUICK_MENU_STOP_STREAMING,
+    "Interrompe lo streaming."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_INPUT_META_RECORDING_TOGGLE,
+    "Attiva/Disattiva registrazione"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_INPUT_META_STREAMING_TOGGLE,
+    "Attiva/disattiva streaming"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_VIDEO_RECORD_QUALITY,
+    "Qualità di registrazione"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_VIDEO_STREAM_QUALITY,
+    "Qualità stream"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_STREAMING_URL,
+    "URL dello Streaming"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_UDP_STREAM_PORT,
+    "Port UDP Stream"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_ACCOUNTS_TWITCH,
+    "Twitch"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_ACCOUNTS_YOUTUBE,
+    "YouTube"
+    )
+MSG_HASH(MENU_ENUM_LABEL_VALUE_TWITCH_STREAM_KEY,
+      "Chiave per lo Stream su Twitch")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_YOUTUBE_STREAM_KEY,
+      "Chiave per lo Stream su YouTube")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_STREAMING_MODE,
+      "Modalità streaming")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_STREAMING_TITLE,
+      "Titolo dello Stream")
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_INPUT_SPLIT_JOYCON,
+    "Splitta i Joy-Con"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_RESET_TO_DEFAULT_CONFIG,
+    "Ripristina impostazioni predefinite"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_RESET_TO_DEFAULT_CONFIG,
+    "Reimposta la configurazione corrente ai valori predefiniti."
+    )

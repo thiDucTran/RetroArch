@@ -20,6 +20,7 @@
 
 #include <boolean.h>
 #include <audio/audio_resampler.h>
+#include "configuration.h"
 #include "gfx/video_defines.h"
 #include "input/input_driver.h"
 
@@ -47,7 +48,7 @@
 #define DEFAULT_ASPECT_RATIO -1.0f
 #endif
 
-#ifdef RARCH_MOBILE
+#if defined(RARCH_MOBILE) || defined(HAVE_LIBNX)
 static const bool pointer_enable = true;
 #else
 static const bool pointer_enable = false;
@@ -67,15 +68,15 @@ static bool bundle_assets_extract_enable = false;
 static bool materialui_icons_enable      = true;
 #endif
 
-static const bool crt_switch_resolution = false; 	
+static const unsigned crt_switch_resolution  = CRT_SWITCH_NONE; 	
 static const int crt_switch_resolution_super = 2560; 
+static const int crt_switch_center_adjust    = 0;
 
+static const bool def_history_list_enable    = true;
+static const bool def_playlist_entry_remove  = true;
+static const bool def_playlist_entry_rename  = true;
 
-static const bool def_history_list_enable = true;
-static const bool def_playlist_entry_remove = true;
-static const bool def_playlist_entry_rename = true;
-
-static const unsigned int def_user_language = 0;
+static const unsigned int def_user_language  = 0;
 
 #if (defined(_WIN32) && !defined(_XBOX)) || (defined(__linux) && !defined(ANDROID) && !defined(HAVE_LAKKA)) || (defined(__MACH__) && !defined(IOS)) || defined(EMSCRIPTEN)
 static const bool def_mouse_enable = true;
@@ -147,6 +148,8 @@ static const bool vsync = true;
 
 static const unsigned max_swapchain_images = 3;
 
+static const bool adaptive_vsync = false;
+
 /* Attempts to hard-synchronize CPU and GPU.
  * Can reduce latency at cost of performance. */
 static const bool hard_sync = false;
@@ -178,7 +181,11 @@ static unsigned swap_interval = 1;
 /* Threaded video. Will possibly increase performance significantly
  * at the cost of worse synchronization and latency.
  */
+#if defined(HAVE_LIBNX)
+static const bool video_threaded = true;
+#else
 static const bool video_threaded = false;
+#endif
 
 #if defined(HAVE_THREADS)
 #if defined(GEKKO) || defined(PSP)
@@ -229,7 +236,7 @@ static const float aspect_ratio = DEFAULT_ASPECT_RATIO;
 /* 1:1 PAR */
 static const bool aspect_ratio_auto = false;
 
-#if defined(__CELLOS_LV2) || defined(_XBOX360)
+#if defined(__CELLOS_LV2) || defined(_XBOX360) || defined(ANDROID_AARCH64)
 static unsigned aspect_ratio_idx = ASPECT_RATIO_16_9;
 #elif defined(PSP)
 static unsigned aspect_ratio_idx = ASPECT_RATIO_CORE;
@@ -248,20 +255,28 @@ static const bool overlay_hide_in_menu = true;
 
 static const bool display_keyboard_overlay = false;
 
+#ifdef HAKCHI
+static const float default_input_overlay_opacity = 0.5f;
+#else
+static const float default_input_overlay_opacity = 0.7f;
+#endif
+
 #ifdef HAVE_MENU
 #include "menu/menu_driver.h"
 
 static bool default_block_config_read    = true;
 
-static bool quick_menu_show_take_screenshot      = true;
-static bool quick_menu_show_save_load_state      = true;
-static bool quick_menu_show_undo_save_load_state = true;
-static bool quick_menu_show_add_to_favorites     = true;
-static bool quick_menu_show_options              = true;
-static bool quick_menu_show_controls             = true;
-static bool quick_menu_show_cheats               = true;
-static bool quick_menu_show_shaders              = true;
-static bool quick_menu_show_information          = true;
+static bool quick_menu_show_take_screenshot             = true;
+static bool quick_menu_show_save_load_state             = true;
+static bool quick_menu_show_undo_save_load_state        = true;
+static bool quick_menu_show_add_to_favorites            = true;
+static bool quick_menu_show_options                     = true;
+static bool quick_menu_show_controls                    = true;
+static bool quick_menu_show_cheats                      = true;
+static bool quick_menu_show_shaders                     = true;
+static bool quick_menu_show_information                 = true;
+static bool quick_menu_show_recording                   = true;
+static bool quick_menu_show_streaming                   = true;
 
 static bool quick_menu_show_save_core_overrides         = true;
 static bool quick_menu_show_save_game_overrides         = true;
@@ -277,6 +292,11 @@ static bool menu_show_configurations     = true;
 static bool menu_show_help               = true;
 static bool menu_show_quit_retroarch     = true;
 static bool menu_show_reboot             = true;
+#ifdef HAVE_LAKKA_SWITCH
+static bool menu_show_shutdown           = false;
+#else
+static bool menu_show_shutdown           = true;
+#endif
 #if defined(HAVE_LAKKA) || defined(VITA) || defined(_3DS)
 static bool menu_show_core_updater       = false;
 #else
@@ -289,7 +309,7 @@ static bool content_show_favorites   = true;
 static bool content_show_images      = true;
 #endif
 static bool content_show_music       = true;
-#ifdef HAVE_FFMPEG
+#if defined(HAVE_FFMPEG) || defined(HAVE_MPV)
 static bool content_show_video       = true;
 #endif
 #ifdef HAVE_NETWORKING
@@ -440,9 +460,11 @@ static const bool font_enable = true;
  * If your monitor does not run at 60Hz, or something close to it,
  * disable VSync, and leave this at its default. */
 #ifdef _3DS
-static const float refresh_rate = (32730.0 * 8192.0) / 4481134.0 ;
+static const float refresh_rate     = (32730.0 * 8192.0) / 4481134.0 ;
+static const float crt_refresh_rate = (32730.0 * 8192.0) / 4481134.0 ;
 #else
-static const float refresh_rate = 60/1.001;
+static const float refresh_rate     = 60/1.001;
+static const float crt_refresh_rate = 60/1.001;
 #endif
 
 /* Allow games to set rotation. If false, rotation requests are
@@ -519,9 +541,18 @@ static const bool framecount_show = true;
  * depending on the save state buffer. */
 static const bool rewind_enable = false;
 
+/* When set, any time a cheat is toggled it is immediately applied. */
+static const bool apply_cheats_after_toggle = false;
+
+/* When set, all enabled cheats are auto-applied when a game is loaded. */
+static const bool apply_cheats_after_load = false;
+
 /* The buffer size for the rewind buffer. This needs to be about
  * 15-20MB per minute. Very game dependant. */
 static const unsigned rewind_buffer_size = 20 << 20; /* 20MiB */
+
+/* The amount of MB to increase/decrease the rewind_buffer_size when it is changed via the UI. */
+static const unsigned rewind_buffer_size_step = 10; /* 10MB */
 
 /* How many frames to rewind at a time. */
 static const unsigned rewind_granularity = 1;
@@ -597,6 +628,9 @@ static const float slowmotion_ratio = 3.0;
 /* Maximum fast forward ratio. */
 static const float fastforward_ratio = 0.0;
 
+/* Enable runloop for variable refresh rate screens. Force x1 speed while handling fast forward too. */
+static const bool vrr_runloop_enable = false;
+
 /* Run core logic one or more frames ahead then load the state back to reduce perceived input lag. */
 static const unsigned run_ahead_frames = 1;
 
@@ -635,6 +669,10 @@ static const unsigned libretro_log_level = 1;
 #define RARCH_DEFAULT_PORT 55435
 #endif
 
+#ifndef RARCH_STREAM_DEFAULT_PORT
+#define RARCH_STREAM_DEFAULT_PORT 56400
+#endif
+
 /* KEYBINDS, JOYPAD */
 
 /* Axis threshold (between 0.0 and 1.0)
@@ -661,9 +699,13 @@ static const unsigned input_poll_type_behavior = 2;
 
 static const unsigned input_bind_timeout = 5;
 
+static const unsigned input_bind_hold = 2;
+
 static const unsigned menu_thumbnails_default = 3;
 
 static const unsigned menu_left_thumbnails_default = 0;
+
+static const unsigned menu_timedate_style = 5;
 
 static const bool xmb_vertical_thumbnails = false;
 
@@ -689,13 +731,27 @@ static enum resampler_quality audio_resampler_quality_level = RESAMPLER_QUALITY_
 static enum resampler_quality audio_resampler_quality_level = RESAMPLER_QUALITY_NORMAL;
 #endif
 
-#if defined(ANDROID)
-#if defined(ANDROID_ARM)
+/* MIDI */
+static const char *midi_input     = "Off";
+static const char *midi_output    = "Off";
+static const unsigned midi_volume = 100;
+
+/* Only applies to Android 7.0 (API 24) and up */
+static const bool sustained_performance_mode = false;
+
+#if defined(HAKCHI)
+static char buildbot_server_url[] = "http://hakchicloud.com/Libretro_Cores/";
+#elif defined(ANDROID)
+#if defined(ANDROID_ARM_V7)
 static char buildbot_server_url[] = "http://buildbot.libretro.com/nightly/android/latest/armeabi-v7a/";
+#elif defined(ANDROID_ARM)
+static char buildbot_server_url[] = "http://buildbot.libretro.com/nightly/android/latest/armeabi/";
 #elif defined(ANDROID_AARCH64)
 static char buildbot_server_url[] = "http://buildbot.libretro.com/nightly/android/latest/arm64-v8a/";
 #elif defined(ANDROID_X86)
 static char buildbot_server_url[] = "http://buildbot.libretro.com/nightly/android/latest/x86/";
+#elif defined(ANDROID_X64)
+static char buildbot_server_url[] = "http://buildbot.libretro.com/nightly/android/latest/x86_64/";
 #else
 static char buildbot_server_url[] = "";
 #endif
@@ -741,6 +797,8 @@ static char buildbot_server_url[] = "";
 #endif
 #elif defined(WIIU)
 static char buildbot_server_url[] = "http://buildbot.libretro.com/nightly/nintendo/wiiu/latest/";
+#elif defined(HAVE_LIBNX)
+static char buildbot_server_url[] = "http://buildbot.libretro.com/nightly/nintendo/switch/libnx/latest/";
 #elif defined(__CELLOS_LV2__) && defined(DEX_BUILD)
 static char buildbot_server_url[] = "http://libretro.xbins.org/libretro/nightly/playstation/ps3/latest/dex-ps3/";
 #elif defined(__CELLOS_LV2__) && defined(CEX_BUILD)
@@ -752,5 +810,7 @@ static char buildbot_server_url[] = "";
 #endif
 
 static char buildbot_assets_server_url[] = "http://buildbot.libretro.com/assets/";
+
+static char default_discord_app_id[] = "475456035851599874";
 
 #endif

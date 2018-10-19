@@ -1,6 +1,6 @@
 /*  RetroArch - A frontend for libretro.
- *  Copyright (C) 2014-2017 - Jean-André Santoni
- *  Copyright (C) 2011-2017 - Daniel De Matteis
+ *  Copyright (C) 2014-2018 - Jean-André Santoni
+ *  Copyright (C) 2011-2018 - Daniel De Matteis
  *
  *  RetroArch is free software: you can redistribute it and/or modify it under the terms
  *  of the GNU General Public License as published by the Free Software Found-
@@ -617,6 +617,63 @@ bool menu_animation_is_active(void)
    return animation_is_active;
 }
 
+bool menu_animation_kill_by_tag(menu_animation_ctx_tag *tag)
+{
+   unsigned i;
+
+   if (!tag || *tag == (uintptr_t)-1)
+      return false;
+
+   for (i = 0; i < anim.size; ++i)
+   {
+      if (anim.list[i].tag != *tag)
+         continue;
+
+      anim.list[i].alive   = false;
+      anim.list[i].subject = NULL;
+
+      if (i < anim.first_dead)
+         anim.first_dead = i;
+
+      anim.need_defrag = true;
+   }
+
+   return true;
+}
+
+void menu_animation_kill_by_subject(menu_animation_ctx_subject_t *subject)
+{
+   unsigned i, j,  killed = 0;
+   float            **sub = (float**)subject->data;
+
+   for (i = 0; i < anim.size && killed < subject->count; ++i)
+   {
+      if (!anim.list[i].alive)
+         continue;
+
+      for (j = 0; j < subject->count; ++j)
+      {
+         if (anim.list[i].subject != sub[j])
+            continue;
+
+         anim.list[i].alive   = false;
+         anim.list[i].subject = NULL;
+
+         if (i < anim.first_dead)
+            anim.first_dead = i;
+
+         killed++;
+         anim.need_defrag = true;
+         break;
+      }
+   }
+}
+
+float menu_animation_get_delta_time(void)
+{
+   return delta_time;
+}
+
 bool menu_animation_ctl(enum menu_animation_ctl_state state, void *data)
 {
    switch (state)
@@ -644,67 +701,6 @@ bool menu_animation_ctl(enum menu_animation_ctl_state state, void *data)
          break;
       case MENU_ANIMATION_CTL_SET_ACTIVE:
          animation_is_active       = true;
-         break;
-      case MENU_ANIMATION_CTL_DELTA_TIME:
-         {
-            float *ptr = (float*)data;
-            if (!ptr)
-               return false;
-            *ptr = delta_time;
-         }
-         break;
-      case MENU_ANIMATION_CTL_KILL_BY_TAG:
-         {
-            unsigned i;
-            menu_animation_ctx_tag *tag = (menu_animation_ctx_tag*)data;
-
-            if (!tag || *tag == (uintptr_t)-1)
-               return false;
-
-            for (i = 0; i < anim.size; ++i)
-            {
-               if (anim.list[i].tag != *tag)
-                  continue;
-
-               anim.list[i].alive   = false;
-               anim.list[i].subject = NULL;
-
-               if (i < anim.first_dead)
-                  anim.first_dead = i;
-
-               anim.need_defrag = true;
-            }
-         }
-         break;
-      case MENU_ANIMATION_CTL_KILL_BY_SUBJECT:
-         {
-            unsigned i, j,  killed = 0;
-            menu_animation_ctx_subject_t *subject =
-               (menu_animation_ctx_subject_t*)data;
-            float            **sub = (float**)subject->data;
-
-            for (i = 0; i < anim.size && killed < subject->count; ++i)
-            {
-               if (!anim.list[i].alive)
-                  continue;
-
-               for (j = 0; j < subject->count; ++j)
-               {
-                  if (anim.list[i].subject != sub[j])
-                     continue;
-
-                  anim.list[i].alive   = false;
-                  anim.list[i].subject = NULL;
-
-                  if (i < anim.first_dead)
-                     anim.first_dead = i;
-
-                  killed++;
-                  anim.need_defrag = true;
-                  break;
-               }
-            }
-         }
          break;
       case MENU_ANIMATION_CTL_NONE:
       default:

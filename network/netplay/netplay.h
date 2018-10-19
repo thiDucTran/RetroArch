@@ -66,7 +66,7 @@ enum rarch_netplay_ctl_state
 /* Preferences for sharing digital devices */
 enum rarch_netplay_share_digital_preference
 {
-   RARCH_NETPLAY_SHARE_DIGITAL_NO_SHARING,
+   RARCH_NETPLAY_SHARE_DIGITAL_NO_SHARING = 0,
    RARCH_NETPLAY_SHARE_DIGITAL_NO_PREFERENCE,
    RARCH_NETPLAY_SHARE_DIGITAL_OR,
    RARCH_NETPLAY_SHARE_DIGITAL_XOR,
@@ -77,7 +77,7 @@ enum rarch_netplay_share_digital_preference
 /* Preferences for sharing analog devices */
 enum rarch_netplay_share_analog_preference
 {
-   RARCH_NETPLAY_SHARE_ANALOG_NO_SHARING,
+   RARCH_NETPLAY_SHARE_ANALOG_NO_SHARING = 0,
    RARCH_NETPLAY_SHARE_ANALOG_NO_PREFERENCE,
    RARCH_NETPLAY_SHARE_ANALOG_MAX,
    RARCH_NETPLAY_SHARE_ANALOG_AVERAGE,
@@ -118,9 +118,9 @@ int netplay_rooms_parse(const char *buf);
 
 struct netplay_room* netplay_room_get(int index);
 
-int netplay_rooms_get_count();
+int netplay_rooms_get_count(void);
 
-void netplay_rooms_free();
+void netplay_rooms_free(void);
 
 void netplay_get_architecture(char *frontend_architecture, size_t size);
 

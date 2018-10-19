@@ -43,6 +43,7 @@ typedef struct key_desc
 enum
 {
    ACTION_OK_DL_DEFAULT = 0,
+   ACTION_OK_DL_DROPDOWN_BOX_LIST,
    ACTION_OK_DL_OPEN_ARCHIVE,
    ACTION_OK_DL_OPEN_ARCHIVE_DETECT_CORE,
    ACTION_OK_DL_MUSIC,
@@ -67,6 +68,7 @@ enum
    ACTION_OK_DL_INPUT_SETTINGS_LIST,
    ACTION_OK_DL_DRIVER_SETTINGS_LIST,
    ACTION_OK_DL_VIDEO_SETTINGS_LIST,
+   ACTION_OK_DL_CRT_SWITCHRES_SETTINGS_LIST,
    ACTION_OK_DL_AUDIO_SETTINGS_LIST,
    ACTION_OK_DL_AUDIO_MIXER_SETTINGS_LIST,
    ACTION_OK_DL_LATENCY_SETTINGS_LIST,
@@ -75,22 +77,28 @@ enum
    ACTION_OK_DL_LOGGING_SETTINGS_LIST,
    ACTION_OK_DL_FRAME_THROTTLE_SETTINGS_LIST,
    ACTION_OK_DL_REWIND_SETTINGS_LIST,
+   ACTION_OK_DL_CHEAT_DETAILS_SETTINGS_LIST,
+   ACTION_OK_DL_CHEAT_SEARCH_SETTINGS_LIST,
    ACTION_OK_DL_CORE_SETTINGS_LIST,
    ACTION_OK_DL_INPUT_HOTKEY_BINDS_LIST,
    ACTION_OK_DL_RECORDING_SETTINGS_LIST,
    ACTION_OK_DL_PLAYLIST_SETTINGS_LIST,
    ACTION_OK_DL_ACCOUNTS_LIST,
    ACTION_OK_DL_ACCOUNTS_CHEEVOS_LIST,
+   ACTION_OK_DL_ACCOUNTS_YOUTUBE_LIST,
+   ACTION_OK_DL_ACCOUNTS_TWITCH_LIST,
    ACTION_OK_DL_USER_BINDS_LIST,
    ACTION_OK_DL_CONTENT_LIST,
    ACTION_OK_DL_REMAP_FILE,
    ACTION_OK_DL_RECORD_CONFIGFILE,
+   ACTION_OK_DL_STREAM_CONFIGFILE,
    ACTION_OK_DL_DISK_IMAGE_APPEND_LIST,
    ACTION_OK_DL_SUBSYSTEM_ADD_LIST,
    ACTION_OK_DL_SUBSYSTEM_LOAD,
    ACTION_OK_DL_PLAYLIST_COLLECTION,
    ACTION_OK_DL_CONTENT_COLLECTION_LIST,
    ACTION_OK_DL_CHEAT_FILE,
+   ACTION_OK_DL_CHEAT_FILE_APPEND,
    ACTION_OK_DL_CORE_LIST,
    ACTION_OK_DL_LAKKA_LIST,
    ACTION_OK_DL_CONFIGURATIONS_LIST,
@@ -117,6 +125,7 @@ enum
    ACTION_OK_DL_QUICK_MENU_OVERRIDE_OPTIONS_LIST,
    ACTION_OK_DL_MENU_SETTINGS_LIST,
    ACTION_OK_DL_USER_INTERFACE_SETTINGS_LIST,
+   ACTION_OK_DL_POWER_MANAGEMENT_SETTINGS_LIST,
    ACTION_OK_DL_MENU_FILE_BROWSER_SETTINGS_LIST,
    ACTION_OK_DL_RETRO_ACHIEVEMENTS_SETTINGS_LIST,
    ACTION_OK_DL_UPDATER_SETTINGS_LIST,
@@ -127,15 +136,22 @@ enum
    ACTION_OK_DL_USER_SETTINGS_LIST,
    ACTION_OK_DL_DIRECTORY_SETTINGS_LIST,
    ACTION_OK_DL_PRIVACY_SETTINGS_LIST,
+   ACTION_OK_DL_MIDI_SETTINGS_LIST,
    ACTION_OK_DL_BROWSE_URL_START,
    ACTION_OK_DL_CONTENT_SETTINGS
 };
 
 /* Function callbacks */
 
+int action_cancel_pop_default(const char *path,
+      const char *label, unsigned type, size_t idx);
+
 int action_refresh_default(file_list_t *list, file_list_t *menu_list);
 
 int shader_action_parameter_right(unsigned type, const char *label, bool wraparound);
+
+int action_cancel_pop_with_new_pos(const char *path,
+      const char *label, unsigned type, size_t idx, size_t new_idx);
 
 int generic_action_ok_displaylist_push(const char *path, const char *new_path,
       const char *label, unsigned type, size_t idx, size_t entry_idx,
@@ -164,38 +180,6 @@ int action_right_input_desc_kbd(unsigned type, const char *label,
 
 int action_right_cheat(unsigned type, const char *label,
       bool wraparound);
-
-int setting_action_ok_video_refresh_rate_auto(void *data, bool wraparound);
-
-int setting_action_ok_video_refresh_rate_polled(void *data, bool wraparound);
-
-int setting_action_ok_bind_all(void *data, bool wraparound);
-
-int setting_action_ok_bind_all_save_autoconfig(void *data,
-      bool wraparound);
-
-int setting_action_ok_bind_defaults(void *data, bool wraparound);
-
-int setting_action_left_analog_dpad_mode(void *data, bool wraparound);
-
-int setting_action_left_libretro_device_type(
-      void *data, bool wraparound);
-
-int setting_action_left_bind_device(void *data, bool wraparound);
-
-int setting_action_left_mouse_index(void *data, bool wraparound);
-
-int setting_uint_action_left_custom_viewport_width(
-      void *data, bool wraparound);
-
-int setting_uint_action_left_custom_viewport_height(
-      void *data, bool wraparound);
-
-int setting_string_action_left_driver(void *data,
-      bool wraparound);
-
-int setting_string_action_left_audio_device(
-      void *data, bool wraparound);
 
 /* End of function callbacks */
 

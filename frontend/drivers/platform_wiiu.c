@@ -49,7 +49,6 @@
 #include "../../retroarch.h"
 #include "../../gfx/video_driver.h"
 
-
 #include "hbl.h"
 #include "wiiu_dbg.h"
 #include "system/exception_handler.h"
@@ -302,6 +301,7 @@ frontend_ctx_driver_t frontend_ctx_wiiu =
    NULL,                         /* detach_console */
    NULL,                         /* watch_path_for_changes */
    NULL,                         /* check_for_path_changes */
+   NULL,                         /* set_sustained_performance_mode */
    "wiiu",
    NULL,                         /* get_video_driver */
 };
@@ -529,6 +529,9 @@ static int broadcast_init(int port)
 static void wiiu_log_init(int port)
 {
    wiiu_log_lock = 0;
+
+   if(wiiu_log_socket >= 0)
+      return;
 
    if(broadcast_init(port) < 0)
       return;

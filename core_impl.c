@@ -43,6 +43,7 @@
 #include "verbosity.h"
 #include "gfx/video_driver.h"
 #include "audio/audio_driver.h"
+#include "tasks/tasks_internal.h"
 
 #ifdef HAVE_RUNAHEAD
 #include "runahead/copy_load_info.h"
@@ -290,12 +291,15 @@ bool core_load_game(retro_ctx_load_content_info_t *load_info)
    bool contentless = false;
    bool is_inited   = false;
 
+   video_driver_set_cached_frame_ptr(NULL);
+
 #ifdef HAVE_RUNAHEAD
    set_load_content_info(load_info);
    clear_controller_port_map();
 #endif
 
    content_get_status(&contentless, &is_inited);
+   set_save_state_in_background(false);
 
    if (load_info && load_info->special)
       current_core.game_loaded = current_core.retro_load_game_special(
@@ -373,12 +377,16 @@ bool core_get_system_av_info(struct retro_system_av_info *av_info)
 
 bool core_reset(void)
 {
+   video_driver_set_cached_frame_ptr(NULL);
+
    current_core.retro_reset();
    return true;
 }
 
 bool core_init(void)
 {
+   video_driver_set_cached_frame_ptr(NULL);
+
    current_core.retro_init();
    current_core.inited          = true;
    return true;
@@ -386,7 +394,11 @@ bool core_init(void)
 
 bool core_unload(void)
 {
-   current_core.retro_deinit();
+   video_driver_set_cached_frame_ptr(NULL);
+
+   if (current_core.inited)
+      current_core.retro_deinit();
+
    return true;
 }
 
@@ -394,11 +406,17 @@ bool core_unload(void)
 bool core_unload_game(void)
 {
    video_driver_free_hw_context();
+
+   video_driver_set_cached_frame_ptr(NULL);
+
+   if (current_core.game_loaded)
+   {
+      current_core.retro_unload_game();
+      current_core.game_loaded = false;
+   }
+
    audio_driver_stop();
 
-   current_core.retro_unload_game();
-
-   current_core.game_loaded = false;
    return true;
 }
 

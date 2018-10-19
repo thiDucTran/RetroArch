@@ -80,6 +80,12 @@ static const bool _vulkan_supp = true;
 static const bool _vulkan_supp = false;
 #endif
 
+#ifdef HAVE_METAL
+static const bool _metal_supp = true;
+#else
+static const bool _metal_supp = false;
+#endif
+
 #if defined(HAVE_OPENGLES) || defined(HAVE_OPENGLES2) || defined(HAVE_OPENGLES3) || defined(HAVE_OPENGLES_3_1) || defined(HAVE_OPENGLES_3_2)
 static const bool _opengles_supp = true;
 #else
@@ -272,10 +278,22 @@ static const bool _ffmpeg_supp = true;
 static const bool _ffmpeg_supp = false;
 #endif
 
+#ifdef HAVE_MPV
+static const bool _mpv_supp = true;
+#else
+static const bool _mpv_supp = false;
+#endif
+
 #ifdef HAVE_FREETYPE
 static const bool _freetype_supp = true;
 #else
 static const bool _freetype_supp = false;
+#endif
+
+#ifdef HAVE_STB_FONT
+static const bool _stbfont_supp = true;
+#else
+static const bool _stbfont_supp = false;
 #endif
 
 #ifdef HAVE_NETWORKING

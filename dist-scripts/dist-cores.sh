@@ -35,6 +35,12 @@ platform=vita
 SALAMANDER=yes
 EXT=a
 mkdir -p ../pkg/vita/vpk
+
+# Nintendo Switch (libnx)
+elif [ $PLATFORM = "libnx" ] ; then
+platform=libnx
+EXT=a
+
 # CTR/3DS
 elif [ $PLATFORM = "ctr" ] ; then
 platform=ctr
@@ -153,8 +159,18 @@ fi
 
 COUNTER=0
 
+if [ $PLATFORM = "libnx" ]; then
+   echo Buildbot: building static core for ${platform}
+   mkdir -p ../pkg/${platform}/switch
+   make -C ../ -f Makefile.${platform} HAVE_STATIC_DUMMY=1 -j3 || exit 1
+   mv -f ../retroarch_switch.nro ../pkg/${platform}/switch/retroarch_switch.nro
+   make -C ../ -f Makefile.${platform} clean || exit 1
+fi
+
 #for f in *_${platform}.${EXT} ; do
 for f in `ls -v *_${platform}.${EXT}`; do
+
+   echo Buildbot: building ${name} for ${platform}
    name=`echo "$f" | sed "s/\(_libretro_${platform}\|\).${EXT}$//"`
    async=0
    pthread=0
@@ -207,6 +223,8 @@ for f in `ls -v *_${platform}.${EXT}`; do
       make -C ../ -f Makefile LINK=g++ $whole_archive $big_stack -j3 || exit 1
    elif [ $PLATFORM = "ctr" ]; then
       make -C ../ -f Makefile.${platform} $OPTS LIBRETRO=$name $whole_archive $big_stack -j3 || exit 1
+   elif [ $PLATFORM = "libnx" ]; then
+      make -C ../ -f Makefile.${platform} $OPTS APP_TITLE="$name" LIBRETRO=$name $whole_archive $big_stack -j3 || exit 1
    else
       make -C ../ -f Makefile.${platform} $OPTS $whole_archive $big_stack -j3 || exit 1
    fi
@@ -249,6 +267,9 @@ for f in `ls -v *_${platform}.${EXT}`; do
       mv -f ../retroarch_3ds.cia ../pkg/${platform}/build/cia/${name}_libretro.cia
       mv -f ../retroarch_3ds.3dsx ../pkg/${platform}/build/3dsx/${name}_libretro.3dsx
       mv -f ../retroarch_3ds.3ds ../pkg/${platform}/build/rom/${name}_libretro.3ds
+   elif [ $PLATFORM = "libnx" ] ; then
+      mkdir -p ../pkg/${platform}/retroarch/cores/
+      mv -f ../retroarch_switch.nro ../pkg/${platform}/retroarch/cores/${name}_libretro_${platform}.nro
    elif [ $PLATFORM = "unix" ] ; then
       mv -f ../retroarch ../pkg/${platform}/${name}_libretro.elf
    elif [ $PLATFORM = "ngc" ] ; then
@@ -275,6 +296,10 @@ for f in `ls -v *_${platform}.${EXT}`; do
       rm -f ../retroarch_3ds.elf
       rm -f ../retroarch_3ds.bnr
       rm -f ../retroarch_3ds.icn
+   elif [ $PLATFORM = "libnx" ] ; then
+      rm -f ../retroarch_switch.elf
+      rm -f ../retroarch_switch.nacp
+      rm -f ../retroarch_switch.nso
    elif [ $PLATFORM = "unix" ] ; then
       rm -f ../retroarch
    elif [ $PLATFORM = "ngc" ] ; then

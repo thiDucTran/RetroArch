@@ -300,9 +300,10 @@ static bool cocoagl_gfx_ctx_bind_api(void *data, enum gfx_ctx_api api, unsigned 
    return true;
 }
 
-static void cocoagl_gfx_ctx_swap_interval(void *data, unsigned interval)
+static void cocoagl_gfx_ctx_swap_interval(void *data, int i)
 {
    (void)data;
+   unsigned interval = (unsigned)i;
 #if defined(HAVE_COCOATOUCH) // < No way to disable Vsync on iOS?
            //   Just skip presents so fast forward still works.
    g_is_syncing = interval ? true : false;
@@ -365,7 +366,7 @@ static bool cocoagl_gfx_ctx_set_video_mode(void *data,
     
     g_format = [[NSOpenGLPixelFormat alloc] initWithAttributes:attributes];
     
-#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_5
+#if MAC_OS_X_VERSION_MIN_REQUIRED < 1050
     if (g_format == nil)
     {
         /* NSOpenGLFPAAllowOfflineRenderers is

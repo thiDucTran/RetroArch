@@ -1,3 +1,29 @@
+#ifdef HAVE_LAKKA_SWITCH
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_SWITCH_GPU_PROFILE,
+    "GPU Übertakten"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_SWITCH_GPU_PROFILE,
+    "Über- oder Untertakten der Switch GPU"
+    )
+ MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_SWITCH_BACKLIGHT_CONTROL,
+    "Bildschirmhelligkeit"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_SWITCH_BACKLIGHT_CONTROL,
+    "Anpassen der Switch Bildschirmhelligkeit"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_SWITCH_CPU_PROFILE,
+    "CPU Übertakten"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_SWITCH_CPU_PROFILE,
+    "Übertakten der Switch CPU"
+    )
+#endif
 MSG_HASH(
       MSG_COMPILER,
       "Compiler"
@@ -6,6 +32,9 @@ MSG_HASH(
       MSG_UNKNOWN_COMPILER,
       "Unbekannter Compiler"
       )
+MSG_HASH(
+    MSG_NATIVE,
+    "Native")
 MSG_HASH(
       MSG_DEVICE_DISCONNECTED_FROM_PORT,
       "Gerät von Anschluss getrennt"
@@ -819,7 +848,7 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_LOAD_STATE_KEY,
       "Spielstand laden")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_MENU_TOGGLE,
       "Menü aufrufen")
-MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_MOVIE_RECORD_TOGGLE,
+MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_BSV_RECORD_TOGGLE,
       "Videoaufzeichnung starten/beenden")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_INPUT_META_MUTE,
       "Audio stumm-/lautschalten")
@@ -1229,8 +1258,13 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_RDB_ENTRY_START_CONTENT,
       "Starte Inhalt")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_RDB_ENTRY_TGDB_RATING,
       "TGDB-Bewertung")
+#ifdef HAVE_LAKKA_SWITCH
+MSG_HASH(MENU_ENUM_LABEL_VALUE_REBOOT,
+      "Neustart (RCM)")
+#else
 MSG_HASH(MENU_ENUM_LABEL_VALUE_REBOOT,
       "Neustart")
+#endif
 MSG_HASH(MENU_ENUM_LABEL_VALUE_RECORDING_CONFIG_DIRECTORY,
       "Aufnahme-Konfigurationen")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_RECORDING_OUTPUT_DIRECTORY,
@@ -1439,6 +1473,8 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_FFMPEG_SUPPORT,
       "FFmpeg-Unterstützung")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_FREETYPE_SUPPORT,
       "FreeType-Unterstützung")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_STB_TRUETYPE_SUPPORT,
+      "STB TrueType-Unterstützung")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_FRONTEND_IDENTIFIER,
       "Frontend-Kennung")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_FRONTEND_NAME,
@@ -3233,6 +3269,10 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_SHOW_REBOOT,
       "Zeige 'Neu starten'")
 MSG_HASH(MENU_ENUM_SUBLABEL_MENU_SHOW_REBOOT,
       "Zeige/verstecke die Option 'Neu starten'.")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_SHOW_SHUTDOWN,
+      "Show Shutdown")
+MSG_HASH(MENU_ENUM_SUBLABEL_MENU_SHOW_SHUTDOWN,
+      "Show/hide the 'Shutdown' option.")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_QUICK_MENU_VIEWS_SETTINGS,
       "Spielmenü")
 MSG_HASH(MENU_ENUM_SUBLABEL_QUICK_MENU_VIEWS_SETTINGS,
@@ -3318,92 +3358,231 @@ MSG_HASH(MENU_ENUM_LABEL_VALUE_VIDEO_MESSAGE_COLOR_BLUE,
 MSG_HASH(MENU_ENUM_LABEL_VALUE_FRAMECOUNT_SHOW,
       "Zeige die aktuelle Anzahl an Einzelbildern an")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_AUTOMATICALLY_ADD_CONTENT_TO_PLAYLIST,
-      "Automatically add content to playlist")
+      "Inhalt automatisch zur Playlist hinzufügen")
 MSG_HASH(MENU_ENUM_SUBLABEL_AUTOMATICALLY_ADD_CONTENT_TO_PLAYLIST,
-      "Automatically scans loaded content so they appear inside playlists.")
+      "Scant automatisch den geladenen Inhalt, so dass er in Playlisten angezeigt wird.")
 MSG_HASH(MSG_SCANNING_OF_FILE_FINISHED,
-      "Scanning of file finished")
+      "Scannen von Datei beendet")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_AUDIO_RESAMPLER_QUALITY,
-      "Audio Resampler Quality")
+      "Audio Resampler Qualität")
 MSG_HASH(MENU_ENUM_SUBLABEL_AUDIO_RESAMPLER_QUALITY,
-      "Lower this value to favor performance/lower latency over audio quality, increase if you want better audio quality at the expense of performance/lower latency.")
+      "Verkleinere diesen Wert um Performance/kleinere Latenz gegenüber Audio Qualität zu bevorzugen, erhöhe ihn wenn du bessere Audioqualität bevorzugst auf kosten der Performance/kleinerer Latenz.")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_STATISTICS_SHOW,
-      "Display Statistics")
+      "Statistiken anzeigen")
 MSG_HASH(MENU_ENUM_SUBLABEL_STATISTICS_SHOW,
-      "Show onscreen technical statistics.")
+      "Technische Onscreen-Statistiken anzeigen.")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_RGUI_BORDER_FILLER_ENABLE,
-      "Enable border filler")
+      "Rahmenfüller aktivieren.")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_RGUI_BORDER_FILLER_THICKNESS_ENABLE,
-      "Enable border filler thickness")
+      "Rahmenfüllerdicke aktivieren")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_MENU_RGUI_BACKGROUND_FILLER_THICKNESS_ENABLE,
-      "Enable background filler thickness")
-MSG_HASH(MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION, "For 15 kHz CRT displays only. Attempts to use exact core/game resolution and refresh rate.")
-MSG_HASH(MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION, "CRT SwitchRes") 
-MSG_HASH(MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION_SUPER, "When CRT SwitchRes is enabled, force ultrawide horizontal resolution to minimize mode switching.")
-MSG_HASH(MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION_SUPER, "CRT Super Resolution") 
+      "Hintergrundfüllerdicke aktivieren")
+MSG_HASH(MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION, "Nur für CRT Bildschirme. Versuche die exakte Core-/Spielauflösung und refresh Rate zu verwenden.")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION, "CRT SwitchRes")
+MSG_HASH(
+      MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION_SUPER,
+      "Umschalten zwischen Nativer- und ultraweiter Superauflösungen."
+      )
+MSG_HASH(MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION_SUPER, "CRT Superauflösung")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_CONTENT_SHOW_REWIND,
-      "Show Rewind Settings")
+      "Rückspuleinstellungen anzeigen")
 MSG_HASH(MENU_ENUM_SUBLABEL_CONTENT_SHOW_REWIND,
-      "Show/hide the Rewind options.")
+      "Rückspuleinstellungsoption anzeigen/verstecken ")
 MSG_HASH(MENU_ENUM_SUBLABEL_CONTENT_SHOW_LATENCY,
-      "Show/hide the Latency options.")
+      "Latenzoptionen anzeigen/verstecken")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_CONTENT_SHOW_LATENCY,
-      "Show Latency Settings")
+      "Latenzeinstellungen anzeigen")
 MSG_HASH(MENU_ENUM_SUBLABEL_CONTENT_SHOW_OVERLAYS,
-      "Show/hide the Overlay options.")
+      "Overlayoptionen anzeigen/verstecken")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_CONTENT_SHOW_OVERLAYS,
-      "Show Overlay Settings")
+      "Overlayeinstellungen anzeigen")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_AUDIO_ENABLE_MENU,
-      "Enable menu audio")
+      "Menuaudio aktivieren")
 MSG_HASH(MENU_ENUM_SUBLABEL_AUDIO_ENABLE_MENU,
-      "Enable or disable menu sound.")
+      "Menuton aktivieren oder deaktivieren")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_AUDIO_MIXER_SETTINGS,
-      "Mixer Settings")
+      "Mixer-Einstellungen")
 MSG_HASH(MENU_ENUM_SUBLABEL_AUDIO_MIXER_SETTINGS,
-      "View and/or modify audio mixer settings.")
+      "Anzeigen und/oder anzeigen von Audiomixer-Einstellungen.")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_QUICK_MENU_OVERRIDE_OPTIONS,
-      "Overrides")
+      "Überschreibungen")
 MSG_HASH(MENU_ENUM_SUBLABEL_QUICK_MENU_OVERRIDE_OPTIONS,
-      "Options for overriding the global configuration.")
+      "Optionen zum überschreiben der globalen Konfiguration.")
 MSG_HASH(MENU_ENUM_SUBLABEL_MIXER_ACTION_PLAY,
-      "Will start playback of the audio stream. Once finished, it will remove the current audio stream from memory.")
+      "Wird die Wiedergabe des Audiostreams starten. Sobald dieser fertig ist, wird der jetzige Audiostream aus dem Speicher entfernt werden.")
 MSG_HASH(MENU_ENUM_SUBLABEL_MIXER_ACTION_PLAY_LOOPED,
-      "Will start playback of the audio stream. Once finished, it will loop and play the track again from the beginning.")
+      "Wird die Wiedergabe des Audiostreams starten. Sobald dieser fertig ist, wird dieser erneut von vorne gestartet")
 MSG_HASH(MENU_ENUM_SUBLABEL_MIXER_ACTION_PLAY_SEQUENTIAL,
-      "Will start playback of the audio stream. Once finished, it will jump to the next audio stream in sequential order and repeat this behavior. Useful as an album playback mode.")
+      "Wird die Wiedergabe des Audiostreams starten. Sobald dieser fertig ist, springt er zum nächsten Audiostream in sequenzieller Reihenfolge und wiederholt dieses verhalten. Nützlich als Albumwiedergabemodus.")
 MSG_HASH(MENU_ENUM_SUBLABEL_MIXER_ACTION_STOP,
-      "This will stop playback of the audio stream, but not remove it from memory. You can start playing it again by selecting 'Play'.")
+      "Dies wird die Wiedergabe des Audiostreams stoppen, aber ihn nicht aus dem Speicher entfernen. Du kannst die Wiedergabe fortsetzen in dem du erneut auf 'Abspielen' klickst.")
 MSG_HASH(MENU_ENUM_SUBLABEL_MIXER_ACTION_REMOVE,
-      "This will stop playback of the audio stream and remove it entirely from memory.")
+      "Dies wird die Wiedergabe stoppen und den Audiostream komplett aus dem Speicher entfernen.")
 MSG_HASH(MENU_ENUM_SUBLABEL_MIXER_ACTION_VOLUME,
-      "Adjust the volume of the audio stream.")
+      "Anpassen der Lautstärke des Audiostreams.")
 MSG_HASH(MENU_ENUM_SUBLABEL_ADD_TO_MIXER,
-      "Add this audio track to an available audio stream slot. If no slots are currently available, it will be ignored.")
+      "Diese Audiospur einem verfügbaren Audiostreamslot hinzufügen. Wenn momentan kein Slot verfügbar ist, wird dies ignoriert.")
 MSG_HASH(MENU_ENUM_SUBLABEL_ADD_TO_MIXER_AND_PLAY,
-      "Add this audio track to an available audio stream slot and play it. If no slots are currently available, it will be ignored.")
+      "Diese Audiospur einem verfügbaren Audiostreamslot hinzufügen und sie wiedergeben. Wenn momentan kein Slot verfügbar ist, wird dies ignoriert.")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_MIXER_ACTION_PLAY,
-      "Play")
+      "Abspielen")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_MIXER_ACTION_PLAY_LOOPED,
-      "Play (Looped)")
+      "Abspielen (Schleife)")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_MIXER_ACTION_PLAY_SEQUENTIAL,
-      "Play (Sequential)")
+      "Abspielen (Sequenziell)")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_MIXER_ACTION_STOP,
-      "Stop")
+      "Stopp")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_MIXER_ACTION_REMOVE,
-      "Remove")
+      "Entfernen")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_MIXER_ACTION_VOLUME,
-      "Volume")
+      "Lautstärke")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_DETECT_CORE_LIST_OK_CURRENT_CORE,
-      "Current core")
+      "Aktueller Core")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_QT_MENU_SEARCH_CLEAR,
-      "Clear")
+      "Leeren")
 MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_IN_MENU,
-      "In-Menu")
+      "Im Menu")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_IN_GAME,
+      "Im Spiel")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_IN_GAME_PAUSED,
+      "Im Spiel (Pausiert)")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_STATUS_PLAYING,
+      "Wiedergebend")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_DISCORD_STATUS_PAUSED,
+      "Pausiert")
 MSG_HASH(
       MENU_ENUM_LABEL_VALUE_DISCORD_ALLOW,
-      "Enable Discord"
+      "Discord aktivieren"
       )
 MSG_HASH(
       MENU_ENUM_SUBLABEL_DISCORD_ALLOW,
-      "Enable or disable Discord support. Will not work with the browser version, only native desktop client."
+      "Discordunterstützung aktivieren oder deaktivieren. Funktioniert nicht in der Browserversion, nur im nativen Desktop Client."
       )
+MSG_HASH(MENU_ENUM_LABEL_VALUE_POWER_MANAGEMENT_SETTINGS,
+      "Energieverwaltung")
+MSG_HASH(MENU_ENUM_SUBLABEL_POWER_MANAGEMENT_SETTINGS,
+      "Ändere die Energieverwaltungs-Einstellungen")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_SUSTAINED_PERFORMANCE_MODE,
+      "Dauerleistungsmodus")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_MPV_SUPPORT,
+      "mpv unterstützung")
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_VIDEO_ADAPTIVE_VSYNC,
+    "Adaptiver Vsync"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_VIDEO_ADAPTIVE_VSYNC,
+    "V-Sync ist aktiviert bis die Leistung unter die Zielaktualisierungsrate fällt. Kann Ruckler vermeiden, wenn die Leistung unter realtime fällt, und kann energieeffizienter sein."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_CRT_SWITCHRES_SETTINGS,
+    "CRT SwitchRes"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_CRT_SWITCHRES_SETTINGS,
+    "Native Signale mit niedgriger Auflösung ausgeben, welche mit CRT Bildschirmen benutzt werden können."
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_CRT_SWITCH_X_AXIS_CENTERING,
+    "Versuche eine dieser Optionen, wenn das Bild nicht richtig zentriert auf dem Bildschirm erscheint."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_CRT_SWITCH_X_AXIS_CENTERING,
+    "X-Achsenzentrierung"
+    )
+MSG_HASH(
+      MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION_USE_CUSTOM_REFRESH_RATE,
+      "Benutze eine, in der Konfiguration definierte, Aktualisierungsrate wenn notwendig.")
+MSG_HASH(
+      MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION_USE_CUSTOM_REFRESH_RATE,
+      "Benutze eine benutzerdefinierte Aktualisierungsrate.")
+MSG_HASH(
+      MENU_ENUM_SUBLABEL_CRT_SWITCH_RESOLUTION_OUTPUT_DISPLAY_ID,
+      "Wähle den Ausgangsport aus, welcher mit dem CRT Bildschirm verbunden ist.")
+MSG_HASH(
+      MENU_ENUM_LABEL_VALUE_CRT_SWITCH_RESOLUTION_OUTPUT_DISPLAY_ID,
+      "Ausgangs Bildschirm ID")
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_QUICK_MENU_START_RECORDING,
+    "Aufnahme starten"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_QUICK_MENU_START_RECORDING,
+    "Startet die Aufnahme"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_QUICK_MENU_STOP_RECORDING,
+    "Aufnahme beenden"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_QUICK_MENU_STOP_RECORDING,
+    "Beendet die Aufnahme"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_QUICK_MENU_START_STREAMING,
+    "Streamen starten"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_QUICK_MENU_START_STREAMING,
+    "Startet das Streamen"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_QUICK_MENU_STOP_STREAMING,
+    "Streamen beenden"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_QUICK_MENU_STOP_STREAMING,
+    "Beendet das Streamen"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_INPUT_META_RECORDING_TOGGLE,
+    "Aufnahme starten/stoppen"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_INPUT_META_STREAMING_TOGGLE,
+    "Streamen starten/stoppen"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_VIDEO_RECORD_QUALITY,
+    "Aufnahmequalität"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_VIDEO_STREAM_QUALITY,
+    "Streamingqualität"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_STREAMING_URL,
+    "Streaming URL"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_UDP_STREAM_PORT,
+    "UDP Stream Port"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_ACCOUNTS_TWITCH,
+    "Twitch"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_ACCOUNTS_YOUTUBE,
+    "YouTube"
+    )
+MSG_HASH(MENU_ENUM_LABEL_VALUE_TWITCH_STREAM_KEY,
+      "Twitch Stream Key")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_YOUTUBE_STREAM_KEY,
+      "YouTube Stream Key")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_STREAMING_MODE,
+      "Streamingmodus")
+MSG_HASH(MENU_ENUM_LABEL_VALUE_STREAMING_TITLE,
+      "Streamtitel")
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_INPUT_SPLIT_JOYCON,
+    "Split Joy-Con"
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_RESET_TO_DEFAULT_CONFIG,
+    "Auf Standardwerte zurücksetzen"
+    )
+MSG_HASH(
+    MENU_ENUM_SUBLABEL_RESET_TO_DEFAULT_CONFIG,
+    "Setzt die momentane Konfiguration auf die Standardwerte zurück."
+    )

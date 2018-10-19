@@ -292,23 +292,23 @@ static void frontend_darwin_get_os(char *s, size_t len, int *major, int *minor)
    get_ios_version(major, minor);
    strlcpy(s, "iOS", len);
 #elif defined(OSX)
-    if ([[NSProcessInfo processInfo] respondsToSelector:@selector(operatingSystemVersion)])
-    {
-        typedef struct
-        {
-            NSInteger majorVersion;
-            NSInteger minorVersion;
-            NSInteger patchVersion;
-        } NSMyOSVersion;
-        NSMyOSVersion version = ((NSMyOSVersion(*)(id, SEL))objc_msgSend_stret)([NSProcessInfo processInfo], @selector(operatingSystemVersion));
-        *major = version.majorVersion;
-        *minor = version.minorVersion;
-    }
-    else
-    {
-        Gestalt(gestaltSystemVersionMinor, (SInt32*)minor);
-        Gestalt(gestaltSystemVersionMajor, (SInt32*)major);
-    }
+   if ([[NSProcessInfo processInfo] respondsToSelector:@selector(operatingSystemVersion)])
+   {
+      typedef struct
+      {
+         NSInteger majorVersion;
+         NSInteger minorVersion;
+         NSInteger patchVersion;
+      } NSMyOSVersion;
+      NSMyOSVersion version = ((NSMyOSVersion(*)(id, SEL))objc_msgSend_stret)([NSProcessInfo processInfo], @selector(operatingSystemVersion));
+      *major = (int)version.majorVersion;
+      *minor = (int)version.minorVersion;
+   }
+   else
+   {
+      Gestalt(gestaltSystemVersionMinor, (SInt32*)minor);
+      Gestalt(gestaltSystemVersionMajor, (SInt32*)major);
+   }
    strlcpy(s, "OSX", len);
 #endif
 }
@@ -347,9 +347,15 @@ static void frontend_darwin_get_environment_settings(int *argc, char *argv[],
 #endif
 
    strlcat(home_dir_buf, "/RetroArch", sizeof(home_dir_buf));
+#ifdef HAVE_METAL
+   fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_SHADER],
+                      home_dir_buf, "shaders_slang",
+                      sizeof(g_defaults.dirs[DEFAULT_DIR_SHADER]));
+#else
    fill_pathname_join(g_defaults.dirs[DEFAULT_DIR_SHADER],
          home_dir_buf, "shaders_glsl",
          sizeof(g_defaults.dirs[DEFAULT_DIR_SHADER]));
+#endif
 #if TARGET_OS_IPHONE
     int major, minor;
     get_ios_version(&major, &minor);
@@ -743,5 +749,6 @@ frontend_ctx_driver_t frontend_ctx_darwin = {
    NULL,                         /* detach_console */
    NULL,                         /* watch_path_for_changes */
    NULL,                         /* check_for_path_changes */
+   NULL,                         /* set_sustained_performance_mode */
    "darwin",
 };

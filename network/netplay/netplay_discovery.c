@@ -87,6 +87,13 @@ static struct ad_packet ad_packet_buffer;
 static struct netplay_host_list discovered_hosts;
 static size_t discovered_hosts_allocated;
 
+static struct netplay_room netplay_host_room = {0};
+
+struct netplay_room* netplay_get_host_room(void)
+{
+   return &netplay_host_room;
+}
+
 /** Initialize Netplay discovery (client) */
 bool init_netplay_discovery(void)
 {
@@ -127,7 +134,7 @@ void deinit_netplay_discovery(void)
 /* Todo: implement net_ifinfo and ntohs for consoles */
 bool netplay_discovery_driver_ctl(enum rarch_netplay_discovery_ctl_state state, void *data)
 {
-#ifndef RARCH_CONSOLE
+#ifdef HAVE_NETPLAYDISCOVERY
    char port_str[6];
    int ret;
    unsigned k = 0;
@@ -155,7 +162,7 @@ bool netplay_discovery_driver_ctl(enum rarch_netplay_discovery_ctl_state state, 
 #if defined(SOL_SOCKET) && defined(SO_BROADCAST)
          if (setsockopt(lan_ad_client_fd, SOL_SOCKET, SO_BROADCAST,
                   (const char *)&canBroadcast, sizeof(canBroadcast)) < 0)
-             RARCH_WARN("[discovery] Failed to set netplay discovery port to broadcast\n");
+            RARCH_WARN("[discovery] Failed to set netplay discovery port to broadcast\n");
 #endif
 
          /* Put together the request */
@@ -231,7 +238,7 @@ error:
 bool netplay_lan_ad_server(netplay_t *netplay)
 {
 /* Todo: implement net_ifinfo and ntohs for consoles */
-#ifndef RARCH_CONSOLE
+#ifdef HAVE_NETPLAYDISCOVERY
    fd_set fds;
    int ret;
    struct timeval tmp_tv = {0};
@@ -248,7 +255,7 @@ bool netplay_lan_ad_server(netplay_t *netplay)
       return false;
 
    if (lan_ad_server_fd < 0 && !init_lan_ad_server_socket(netplay, RARCH_DEFAULT_PORT))
-       return false;
+      return false;
 
    /* Check for any ad queries */
    while (1)

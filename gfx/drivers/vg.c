@@ -71,13 +71,15 @@ typedef struct
    VGuint mGlyphIndices[1024];
    VGPaint mPaintFg;
    VGPaint mPaintBg;
+   void *ctx_data;
+   const gfx_ctx_driver_t *ctx_driver;
 } vg_t;
 
 static PFNVGCREATEEGLIMAGETARGETKHRPROC pvgCreateEGLImageTargetKHR;
 
 static void vg_set_nonblock_state(void *data, bool state)
 {
-   unsigned interval = state ? 0 : 1;
+   int interval = state ? 0 : 1;
    video_context_driver_swap_interval(&interval);
 }
 
@@ -97,19 +99,25 @@ static void *vg_init(const video_info_t *video,
    gfx_ctx_mode_t mode;
    gfx_ctx_input_t inp;
    gfx_ctx_aspect_t aspect_data;
-   unsigned interval;
-   unsigned temp_width = 0, temp_height = 0;
    unsigned win_width, win_height;
-   VGfloat clearColor[4] = {0, 0, 0, 1};
-   settings_t        *settings = config_get_ptr();
-   vg_t                    *vg = (vg_t*)calloc(1, sizeof(vg_t));
-   const gfx_ctx_driver_t *ctx = video_context_driver_init_first(
+   VGfloat clearColor[4]           = {0, 0, 0, 1};
+   int interval                    = 0;
+   unsigned temp_width             = 0;
+   unsigned temp_height            = 0;
+   void *ctx_data                  = NULL;
+   settings_t        *settings     = config_get_ptr();
+   vg_t                    *vg     = (vg_t*)calloc(1, sizeof(vg_t));
+   const gfx_ctx_driver_t *ctx     = video_context_driver_init_first(
          vg, settings->arrays.video_context_driver,
-         GFX_CTX_OPENVG_API, 0, 0, false);
+         GFX_CTX_OPENVG_API, 0, 0, false, &ctx_data);
 
    if (!vg || !ctx)
       goto error;
 
+   if (ctx_data)
+      vg->ctx_data = ctx_data;
+
+   vg->ctx_driver = ctx;
    video_context_driver_set((void*)ctx);
 
    video_context_driver_get_video_size(&mode);
@@ -194,7 +202,8 @@ static void *vg_init(const video_info_t *video,
    video_context_driver_input_driver(&inp);
 
    if (     video->font_enable
-         && font_renderer_create_default((const void**)&vg->font_driver, &vg->mFontRenderer,
+         && font_renderer_create_default(
+            &vg->font_driver, &vg->mFontRenderer,
             *settings->paths.path_font ? settings->paths.path_font : NULL, settings->floats.video_font_size))
    {
       vg->mFont            = vgCreateFont(0);
@@ -432,18 +441,14 @@ static bool vg_frame(void *data, const void *frame,
 
 static bool vg_alive(void *data)
 {
-   gfx_ctx_size_t size_data;
    bool quit            = false;
    unsigned temp_width  = 0;
    unsigned temp_height = 0;
    vg_t            *vg  = (vg_t*)data;
+   bool is_shutdown     = rarch_ctl(RARCH_CTL_IS_SHUTDOWN, NULL);
 
-   size_data.quit       = &quit;
-   size_data.resize     = &vg->should_resize;
-   size_data.width      = &temp_width;
-   size_data.height     = &temp_height;
-
-   video_context_driver_check_window(&size_data);
+   vg->ctx_driver->check_window(vg->ctx_data,
+            &quit, &resize, &temp_width, &temp_height, is_shutdown);
 
    if (temp_width != 0 && temp_height != 0)
       video_driver_set_size(&temp_width, &temp_height);

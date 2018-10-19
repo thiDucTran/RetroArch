@@ -53,6 +53,13 @@
    var = newvar; \
 }
 
+enum crt_switch_type
+{
+   CRT_SWITCH_NONE = 0,
+   CRT_SWITCH_15KHZ,
+   CRT_SWITCH_31KHZ
+};
+
 enum override_type
 {
    OVERRIDE_NONE = 0,
@@ -73,6 +80,7 @@ typedef struct settings
       bool video_fullscreen;
       bool video_windowed_fullscreen;
       bool video_vsync;
+      bool video_adaptive_vsync;
       bool video_hard_sync;
       bool video_black_frame_insertion;
       bool video_vfilter;
@@ -96,7 +104,6 @@ typedef struct settings
       bool video_statistics_show;
       bool video_framecount_show;
       bool video_msg_bgcolor_enable;
-      bool crt_switch_resolution;  
 
       /* Audio */
       bool audio_enable;
@@ -149,6 +156,7 @@ typedef struct settings
       bool menu_show_help;
       bool menu_show_quit_retroarch;
       bool menu_show_reboot;
+      bool menu_show_shutdown;
       bool menu_show_latency;
       bool menu_show_rewind;
       bool menu_show_overlays;
@@ -180,7 +188,11 @@ typedef struct settings
       bool quick_menu_show_save_game_overrides;
       bool quick_menu_show_save_content_dir_overrides;
       bool quick_menu_show_information;
+      bool quick_menu_show_recording;
+      bool quick_menu_show_streaming;
       bool kiosk_mode_enable;
+
+      bool crt_switch_custom_refresh_enable;
 
       /* Netplay */
       bool netplay_public_announce;
@@ -238,6 +250,9 @@ typedef struct settings
       bool playlist_entry_remove;
       bool playlist_entry_rename;
       bool rewind_enable;
+      bool vrr_runloop_enable;
+      bool apply_cheats_after_toggle;
+      bool apply_cheats_after_load;
       bool run_ahead_enabled;
       bool run_ahead_secondary_instance;
       bool run_ahead_hide_warnings;
@@ -275,6 +290,8 @@ typedef struct settings
 
       bool automatically_add_content_to_playlist;
       bool video_window_show_decorations;
+
+      bool sustained_performance_mode;
    } bools;
 
    struct
@@ -283,6 +300,7 @@ typedef struct settings
       float video_scale;
       float video_aspect_ratio;
       float video_refresh_rate;
+      float crt_video_refresh_rate;
       float video_font_size;
       float video_msg_pos_x;
       float video_msg_pos_y;
@@ -315,6 +333,7 @@ typedef struct settings
       int location_update_interval_distance;
       int state_slot;
       int audio_wasapi_sh_buffer_length;
+      int crt_switch_center_adjust;
    } ints;
 
    struct
@@ -330,6 +349,7 @@ typedef struct settings
       unsigned input_turbo_duty_cycle;
 
       unsigned input_bind_timeout;
+      unsigned input_bind_hold;
 
       unsigned input_menu_toggle_gamepad_combo;
       unsigned input_keyboard_gamepad_mapping_type;
@@ -344,6 +364,7 @@ typedef struct settings
       unsigned content_history_size;
       unsigned libretro_log_level;
       unsigned rewind_granularity;
+      unsigned rewind_buffer_size_step;
       unsigned autosave_interval;
       unsigned network_cmd_port;
       unsigned network_remote_base_port;
@@ -351,7 +372,8 @@ typedef struct settings
       unsigned video_window_x;
       unsigned video_window_y;
       unsigned video_window_opacity;
-      unsigned crt_switch_resolution_super;  
+      unsigned crt_switch_resolution;
+      unsigned crt_switch_resolution_super;
       unsigned video_monitor_index;
       unsigned video_fullscreen_x;
       unsigned video_fullscreen_y;
@@ -365,7 +387,13 @@ typedef struct settings
       unsigned video_msg_bgcolor_red;
       unsigned video_msg_bgcolor_green;
       unsigned video_msg_bgcolor_blue;
+      unsigned video_stream_port;
+      unsigned video_record_quality;
+      unsigned video_stream_quality;
+      unsigned video_record_scale_factor;
+      unsigned video_stream_scale_factor;
 
+      unsigned menu_timedate_style;
       unsigned menu_thumbnails;
       unsigned menu_left_thumbnails;
       unsigned menu_dpi_override_value;
@@ -388,6 +416,7 @@ typedef struct settings
 
       unsigned input_overlay_show_physical_inputs_port;
 
+      unsigned input_split_joycon[MAX_USERS];
       unsigned input_joypad_map[MAX_USERS];
       unsigned input_device[MAX_USERS];
       unsigned input_mouse_index[MAX_USERS];
@@ -403,7 +432,16 @@ typedef struct settings
       unsigned led_map[MAX_LEDS];
 
       unsigned run_ahead_frames;
+
+      unsigned midi_volume;
+      unsigned streaming_mode;
    } uints;
+
+   struct
+   {
+      size_t placeholder;
+      size_t rewind_buffer_size;
+   } sizes;
 
    struct
    {
@@ -424,6 +462,7 @@ typedef struct settings
       char audio_resampler[32];
       char input_driver[32];
       char input_joypad_driver[32];
+      char midi_driver[32];
 
       char input_keyboard_layout[64];
 
@@ -437,6 +476,14 @@ typedef struct settings
       char bundle_assets_dst_subdir[PATH_MAX_LENGTH];
 
       char netplay_mitm_server[255];
+
+      char midi_input[32];
+      char midi_output[32];
+
+      char youtube_stream_key[PATH_MAX_LENGTH];
+      char twitch_stream_key[PATH_MAX_LENGTH];
+
+      char discord_app_id[PATH_MAX_LENGTH];
    } arrays;
 
    struct
@@ -457,6 +504,9 @@ typedef struct settings
       char path_cheat_database[PATH_MAX_LENGTH];
       char path_content_database[PATH_MAX_LENGTH];
       char path_overlay[PATH_MAX_LENGTH];
+      char path_record_config[PATH_MAX_LENGTH];
+      char path_stream_config[PATH_MAX_LENGTH];
+      char path_stream_url[8192];
       char path_menu_wallpaper[PATH_MAX_LENGTH];
       char path_audio_dsp_plugin[PATH_MAX_LENGTH];
       char path_softfilter_plugin[PATH_MAX_LENGTH];
@@ -470,7 +520,6 @@ typedef struct settings
       char path_cheat_settings[PATH_MAX_LENGTH];
       char path_shader[PATH_MAX_LENGTH];
       char path_font[PATH_MAX_LENGTH];
-
 
       char directory_audio_filter[PATH_MAX_LENGTH];
       char directory_autoconfig[PATH_MAX_LENGTH];
@@ -493,13 +542,13 @@ typedef struct settings
       char directory_thumbnails[PATH_MAX_LENGTH];
       char directory_menu_config[PATH_MAX_LENGTH];
       char directory_menu_content[PATH_MAX_LENGTH];
+      char streaming_title[PATH_MAX_LENGTH];
    } paths;
 
    bool modified;
 
    video_viewport_t video_viewport_custom;
 
-   size_t rewind_buffer_size;
 } settings_t;
 
 /**
@@ -582,6 +631,9 @@ const char *config_get_default_joypad(void);
  * Returns: Default menu driver.
  **/
 const char *config_get_default_menu(void);
+
+const char *config_get_default_midi(void);
+const char *config_get_midi_driver_options(void);
 
 const char *config_get_default_record(void);
 
@@ -671,6 +723,8 @@ bool config_replace(bool config_save_on_exit, char *path);
 bool config_init(void);
 
 bool config_overlay_enable_default(void);
+
+void config_set_defaults(void);
 
 void config_free(void);
 

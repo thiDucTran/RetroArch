@@ -41,7 +41,7 @@
 #endif
 
 static char msg_old[PATH_MAX_LENGTH];
-static id apple_platform;
+id<ApplePlatform> apple_platform;
 static CFRunLoopObserverRef iterate_observer;
 
 /* forward declaration */
@@ -79,7 +79,6 @@ static void ui_companion_cocoatouch_event_command(
       void *data, enum event_command cmd)
 {
     (void)data;
-    command_event(cmd, NULL);
 }
 
 static void rarch_draw_observer(CFRunLoopObserverRef observer,
@@ -594,7 +593,7 @@ static void ui_companion_cocoatouch_notify_content_loaded(void *data)
       [ap showGameView];
 }
 
-static void ui_companion_cocoatouch_toggle(void *data)
+static void ui_companion_cocoatouch_toggle(void *data, bool force)
 {
    RetroArch_iOS *ap   = (RetroArch_iOS *)apple_platform;
 
@@ -687,8 +686,9 @@ static void ui_companion_cocoatouch_render_messagebox(const char *msg)
    }
 }
 
-static void ui_companion_cocoatouch_msg_queue_push(const char *msg,
-   unsigned priority, unsigned duration, bool flush)
+static void ui_companion_cocoatouch_msg_queue_push(void *data,
+      const char *msg,
+      unsigned priority, unsigned duration, bool flush)
 {
    RetroArch_iOS *ap   = (RetroArch_iOS *)apple_platform;
 
@@ -709,7 +709,8 @@ ui_companion_driver_t ui_companion_cocoatouch = {
    ui_companion_cocoatouch_notify_refresh,
    ui_companion_cocoatouch_msg_queue_push,
    ui_companion_cocoatouch_render_messagebox,
-   NULL,
+   NULL, /* get_main_window */
+   NULL, /* log_msg */
    &ui_browser_window_null,
    &ui_msg_window_null,
    &ui_window_null,

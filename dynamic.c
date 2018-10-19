@@ -39,6 +39,10 @@
 #include "cheevos/cheevos.h"
 #endif
 
+#ifdef HAVE_OPENGL
+#include "gfx/common/gl_common.h"
+#endif
+
 #ifdef HAVE_NETWORKING
 #include "network/netplay/netplay.h"
 #endif
@@ -55,6 +59,7 @@
 #include "performance_counters.h"
 #include "gfx/video_driver.h"
 #include "led/led_driver.h"
+#include "midi/midi_driver.h"
 
 #include "cores/internal_cores.h"
 #include "frontend/frontend_driver.h"
@@ -65,6 +70,7 @@
 #include "configuration.h"
 #include "msg_hash.h"
 #include "verbosity.h"
+#include "tasks/tasks_internal.h"
 
 #ifdef HAVE_RUNAHEAD
 #include "runahead/secondary_core.h"
@@ -87,6 +93,10 @@ static dylib_t lib_handle;
 
 #ifdef HAVE_FFMPEG
 #define SYMBOL_FFMPEG(x) current_core->x = libretro_ffmpeg_##x
+#endif
+
+#ifdef HAVE_MPV
+#define SYMBOL_MPV(x) current_core->x = libretro_mpv_##x
 #endif
 
 #ifdef HAVE_IMAGEVIEWER
@@ -529,6 +539,43 @@ bool init_libretro_sym_custom(enum rarch_core_type type, struct retro_core_t *cu
          SYMBOL_FFMPEG(retro_get_memory_size);
 #endif
          break;
+      case CORE_TYPE_MPV:
+#ifdef HAVE_MPV
+         SYMBOL_MPV(retro_init);
+         SYMBOL_MPV(retro_deinit);
+
+         SYMBOL_MPV(retro_api_version);
+         SYMBOL_MPV(retro_get_system_info);
+         SYMBOL_MPV(retro_get_system_av_info);
+
+         SYMBOL_MPV(retro_set_environment);
+         SYMBOL_MPV(retro_set_video_refresh);
+         SYMBOL_MPV(retro_set_audio_sample);
+         SYMBOL_MPV(retro_set_audio_sample_batch);
+         SYMBOL_MPV(retro_set_input_poll);
+         SYMBOL_MPV(retro_set_input_state);
+
+         SYMBOL_MPV(retro_set_controller_port_device);
+
+         SYMBOL_MPV(retro_reset);
+         SYMBOL_MPV(retro_run);
+
+         SYMBOL_MPV(retro_serialize_size);
+         SYMBOL_MPV(retro_serialize);
+         SYMBOL_MPV(retro_unserialize);
+
+         SYMBOL_MPV(retro_cheat_reset);
+         SYMBOL_MPV(retro_cheat_set);
+
+         SYMBOL_MPV(retro_load_game);
+         SYMBOL_MPV(retro_load_game_special);
+
+         SYMBOL_MPV(retro_unload_game);
+         SYMBOL_MPV(retro_get_region);
+         SYMBOL_MPV(retro_get_memory_data);
+         SYMBOL_MPV(retro_get_memory_size);
+#endif
+         break;
       case CORE_TYPE_IMAGEVIEWER:
 #ifdef HAVE_IMAGEVIEWER
          SYMBOL_IMAGEVIEWER(retro_init);
@@ -912,16 +959,10 @@ static bool dynamic_request_hw_context(enum retro_hw_context_type type,
          break;
 
       case RETRO_HW_CONTEXT_OPENGL_CORE:
-         {
-            gfx_ctx_flags_t flags;
-            flags.flags = 0;
-            BIT32_SET(flags.flags, GFX_CTX_FLAGS_GL_CORE_CONTEXT);
-
-            video_context_driver_set_flags(&flags);
-
-            RARCH_LOG("Requesting core OpenGL context (%u.%u).\n",
-                  major, minor);
-         }
+         /* TODO/FIXME - we should do a check here to see if
+          * the requested core GL version is supported */
+         RARCH_LOG("Requesting core OpenGL context (%u.%u).\n",
+               major, minor);
          break;
 #endif
 
@@ -997,6 +1038,16 @@ static void core_performance_counter_stop(struct retro_perf_counter *perf)
 {
    if (rarch_ctl(RARCH_CTL_IS_PERFCNT_ENABLE, NULL))
       perf->total += cpu_features_get_perf_counter() - perf->start;
+}
+
+bool rarch_clear_all_thread_waits(unsigned clear_threads, void *data)
+{
+   if ( clear_threads > 0)
+      audio_driver_start(false) ;
+   else
+      audio_driver_stop() ;
+
+   return true ;
 }
 
 /**
@@ -1321,6 +1372,10 @@ bool rarch_environment_cb(unsigned cmd, void *data)
          if (!dynamic_verify_hw_context(cb->context_type, cb->version_minor, cb->version_major))
             return false;
 
+#if defined(HAVE_OPENGL)
+         if (!gl_set_core_context(cb->context_type)) { }
+#endif
+
          cb->get_current_framebuffer = video_driver_get_current_framebuffer;
          cb->get_proc_address        = video_driver_get_proc_address;
 
@@ -1342,6 +1397,16 @@ bool rarch_environment_cb(unsigned cmd, void *data)
             content_set_does_not_need_content();
          else
             content_unset_does_not_need_content();
+         break;
+      }
+
+      case RETRO_ENVIRONMENT_SET_SAVE_STATE_IN_BACKGROUND:
+      {
+         bool state = *(const bool*)data;
+         RARCH_LOG("Environ SET_SAVE_STATE_IN_BACKGROUND: %s.\n", state ? "yes" : "no");
+
+         set_save_state_in_background(state) ;
+
          break;
       }
 
@@ -1774,14 +1839,45 @@ bool rarch_environment_cb(unsigned cmd, void *data)
 #ifdef HAVE_NETWORKING
          if (netplay_driver_ctl(RARCH_NETPLAY_CTL_IS_REPLAYING, NULL))
             result &= ~(1|2);
+         if (netplay_driver_ctl(RARCH_NETPLAY_CTL_IS_ENABLED, NULL))
+            result |= 4;
 #endif
          if (data != NULL)
          {
             int* result_p = (int*)data;
             *result_p = result;
          }
+         break;
       }
-      break;
+
+      case RETRO_ENVIRONMENT_GET_MIDI_INTERFACE:
+      {
+         struct retro_midi_interface *midi_interface =
+               (struct retro_midi_interface *)data;
+
+         if (midi_interface)
+         {
+            midi_interface->input_enabled = midi_driver_input_enabled;
+            midi_interface->output_enabled = midi_driver_output_enabled;
+            midi_interface->read = midi_driver_read;
+            midi_interface->write = midi_driver_write;
+            midi_interface->flush = midi_driver_flush;
+         }
+         break;
+      }
+
+      case RETRO_ENVIRONMENT_GET_FASTFORWARDING:
+      {
+         extern bool runloop_fastmotion;
+         *(bool *)data = runloop_fastmotion;
+         break;
+      }
+
+      case RETRO_ENVIRONMENT_GET_CLEAR_ALL_THREAD_WAITS_CB:
+      {
+         *(retro_environment_t *)data = rarch_clear_all_thread_waits;
+         break;
+      }
       
       default:
          RARCH_LOG("Environ UNSUPPORTED (#%u).\n", cmd);

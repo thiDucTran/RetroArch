@@ -27,6 +27,8 @@
 #include "config.h"
 #endif
 
+#include "playlist.h"
+
 RETRO_BEGIN_DECLS
 
 typedef struct command command_t;
@@ -147,6 +149,7 @@ enum event_command
    /* Unpauses retroArch. */
    CMD_EVENT_PAUSE,
    CMD_EVENT_PAUSE_CHECKS,
+   CMD_EVENT_MENU_RESET_TO_DEFAULT_CONFIG,
    CMD_EVENT_MENU_SAVE_CURRENT_CONFIG,
    CMD_EVENT_MENU_SAVE_CURRENT_CONFIG_OVERRIDE_CORE,
    CMD_EVENT_MENU_SAVE_CURRENT_CONFIG_OVERRIDE_CONTENT_DIR,
@@ -155,9 +158,10 @@ enum event_command
    CMD_EVENT_MENU_PAUSE_LIBRETRO,
    /* Toggles menu on/off. */
    CMD_EVENT_MENU_TOGGLE,
-   CMD_EVENT_MENU_REFRESH,
    /* Applies shader changes. */
    CMD_EVENT_SHADERS_APPLY_CHANGES,
+   /* A new shader preset has been loaded */
+   CMD_EVENT_SHADER_PRESET_LOADED,
    /* Initializes shader directory. */
    CMD_EVENT_SHADER_DIR_INIT,
    /* Deinitializes shader directory. */
@@ -233,8 +237,7 @@ enum event_command
    CMD_EVENT_RESTORE_DEFAULT_SHADER_PRESET,
    CMD_EVENT_DISCORD_INIT,
    CMD_EVENT_DISCORD_DEINIT,
-   CMD_EVENT_DISCORD_UPDATE,
-   CMD_EVENT_LIBUI_TEST
+   CMD_EVENT_DISCORD_UPDATE
 };
 
 bool command_set_shader(const char *arg);
@@ -268,14 +271,14 @@ bool command_free(command_t *handle);
 bool command_event(enum event_command action, void *data);
 
 void command_playlist_push_write(
-      void *data,
+      playlist_t *playlist,
       const char *path,
       const char *label,
       const char *core_path,
       const char *core_name);
 
 void command_playlist_update_write(
-      void *data,
+      playlist_t *playlist,
       size_t idx,
       const char *path,
       const char *label,

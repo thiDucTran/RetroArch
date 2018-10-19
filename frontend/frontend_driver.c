@@ -59,6 +59,9 @@ static frontend_ctx_driver_t *frontend_ctx_drivers[] = {
 #if defined(_3DS)
    &frontend_ctx_ctr,
 #endif
+#if defined(SWITCH) && defined(HAVE_LIBNX)
+   &frontend_ctx_switch,
+#endif
 #if defined(_WIN32) && !defined(_XBOX)
    &frontend_ctx_win32,
 #endif
@@ -67,6 +70,9 @@ static frontend_ctx_driver_t *frontend_ctx_drivers[] = {
 #endif
 #ifdef DJGPP
    &frontend_ctx_dos,
+#endif
+#ifdef SWITCH
+   &frontend_ctx_switch,
 #endif
    &frontend_ctx_null,
    NULL
@@ -150,6 +156,9 @@ bool frontend_driver_get_core_extension(char *s, size_t len)
 #elif defined(__linux__)
    strlcpy(s, "elf", len);
    return true;
+#elif defined(HAVE_LIBNX)
+   strlcpy(s, "nro", len);
+   return true;
 #elif defined(_3DS)
    if (envIsHomebrew())
       strlcpy(s, "3dsx", len);
@@ -192,6 +201,9 @@ bool frontend_driver_get_salamander_basename(char *s, size_t len)
    return true;
 #elif defined(_3DS)
    strlcpy(s, "retroarch.core", len);
+   return true;
+#elif defined(SWITCH)
+   strlcpy(s, "retroarch_switch.nro", len);
    return true;
 #else
    return false;
@@ -414,6 +426,14 @@ bool frontend_driver_check_for_path_changes(path_change_data_t *change_data)
    if (!frontend || !frontend->check_for_path_changes)
       return false;
    return frontend->check_for_path_changes(change_data);
+}
+
+void frontend_driver_set_sustained_performance_mode(bool on)
+{
+   frontend_ctx_driver_t *frontend = frontend_get_ptr();
+   if (!frontend || !frontend->set_sustained_performance_mode)
+      return;
+   frontend->set_sustained_performance_mode(on);
 }
 
 #endif

@@ -328,6 +328,17 @@ static bool menu_display_wiiu_font_init_first(
    return *handle;
 }
 
+static void menu_display_wiiu_scissor_begin(video_frame_info_t *video_info, int x, int y,
+      unsigned width, unsigned height)
+{
+   GX2SetScissor(MAX(x, 0), MAX(video_info->height - y - height, 0), MIN(width, video_info->width), MIN(height, video_info->height));
+}
+
+static void menu_display_wiiu_scissor_end(video_frame_info_t *video_info)
+{
+   GX2SetScissor(0, 0, video_info->width, video_info->height);
+}
+
 menu_display_ctx_driver_t menu_display_ctx_wiiu = {
    menu_display_wiiu_draw,
    menu_display_wiiu_draw_pipeline,
@@ -341,6 +352,8 @@ menu_display_ctx_driver_t menu_display_ctx_wiiu = {
    menu_display_wiiu_get_default_tex_coords,
    menu_display_wiiu_font_init_first,
    MENU_VIDEO_DRIVER_WIIU,
-   "menu_display_wiiu",
-   true
+   "gx2",
+   true,
+   menu_display_wiiu_scissor_begin,
+   menu_display_wiiu_scissor_end
 };

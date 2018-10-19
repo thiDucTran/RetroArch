@@ -33,7 +33,9 @@ MENU
 UI
 ============================================================ */
 #if defined(HAVE_QT)
+#ifndef __APPLE__
 #define HAVE_MAIN /* also requires defining in frontend.c */
+#endif
 #include "../ui/drivers/ui_qt.cpp"
 
 #include "../ui/drivers/qt/ui_qt_window.cpp"
@@ -41,6 +43,27 @@ UI
 #include "../ui/drivers/qt/ui_qt_browser_window.cpp"
 #include "../ui/drivers/qt/ui_qt_msg_window.cpp"
 #include "../ui/drivers/qt/ui_qt_application.cpp"
+#include "../ui/drivers/qt/flowlayout.cpp"
+#include "../ui/drivers/qt/shaderparamsdialog.cpp"
+#include "../ui/drivers/qt/coreoptionsdialog.cpp"
+#include "../ui/drivers/qt/filedropwidget.cpp"
+#include "../ui/drivers/qt/coreinfodialog.cpp"
+#include "../ui/drivers/qt/playlistentrydialog.cpp"
+#include "../ui/drivers/qt/viewoptionsdialog.cpp"
+#include "../ui/drivers/qt/playlist.cpp"
+#include "../ui/drivers/qt/updateretroarch.cpp"
+#include "../ui/drivers/qt/thumbnaildownload.cpp"
+#include "../ui/drivers/qt/thumbnailpackdownload.cpp"
+#include "../ui/drivers/qt/playlistthumbnaildownload.cpp"
+#include "../ui/drivers/moc_ui_qt.cpp"
+#include "../ui/drivers/qt/moc_coreinfodialog.cpp"
+#include "../ui/drivers/qt/moc_coreoptionsdialog.cpp"
+#include "../ui/drivers/qt/moc_filedropwidget.cpp"
+#include "../ui/drivers/qt/moc_flowlayout.cpp"
+#include "../ui/drivers/qt/moc_playlistentrydialog.cpp"
+#include "../ui/drivers/qt/moc_shaderparamsdialog.cpp"
+#include "../ui/drivers/qt/moc_ui_qt_load_core_window.cpp"
+#include "../ui/drivers/qt/moc_viewoptionsdialog.cpp"
 #endif
 
 /*============================================================
@@ -50,11 +73,13 @@ VIDEO DRIVER
 #include "../gfx/drivers_shader/shader_vulkan.cpp"
 #endif
 
-#ifdef HAVE_SPIRV_CROSS
+#if defined(HAVE_SPIRV_CROSS)
+#if defined(ENABLE_HLSL)
+#include "../deps/SPIRV-Cross/spirv_hlsl.cpp"
+#endif
 #include "../deps/SPIRV-Cross/spirv_cross.cpp"
 #include "../deps/SPIRV-Cross/spirv_cfg.cpp"
 #include "../deps/SPIRV-Cross/spirv_glsl.cpp"
-#include "../deps/SPIRV-Cross/spirv_hlsl.cpp"
 #include "../deps/SPIRV-Cross/spirv_msl.cpp"
 #ifdef HAVE_SLANG
 #include "../gfx/drivers_shader/glslang_util.cpp"

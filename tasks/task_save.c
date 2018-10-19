@@ -52,9 +52,11 @@
 #include "../retroarch.h"
 #include "../verbosity.h"
 #include "tasks_internal.h"
+#include "../managers/cheat_manager.h"
 
 #define SAVE_STATE_CHUNK 4096
 
+static bool save_state_in_background = false;
 static struct string_list *task_save_files = NULL;
 
 struct ram_type
@@ -554,6 +556,33 @@ static void task_save_handler_finished(retro_task_t *task,
    free(state);
 }
 
+void* get_serialized_data(const char *path, size_t serial_size)
+{
+   retro_ctx_serialize_info_t serial_info;
+   bool ret    = false;
+   void *data  = NULL;
+
+   data = malloc(serial_size);
+
+   if (!data)
+      return NULL;
+
+   RARCH_LOG("%s: %d %s.\n",
+         msg_hash_to_str(MSG_STATE_SIZE),
+         (int)serial_size,
+         msg_hash_to_str(MSG_BYTES));
+
+   serial_info.data = data;
+   serial_info.size = serial_size;
+   ret              = core_serialize(&serial_info);
+   if ( !ret )
+   {
+      free(data) ;
+      return NULL ;
+   }
+   return data ;
+}
+
 /**
  * task_save_handler:
  * @task : the task being worked on
@@ -568,16 +597,24 @@ static void task_save_handler(retro_task_t *task)
 
    if (!state->file)
    {
-      state->file = intfstream_open_file(state->path, RETRO_VFS_FILE_ACCESS_WRITE,
+      state->file   = intfstream_open_file(
+            state->path, RETRO_VFS_FILE_ACCESS_WRITE,
             RETRO_VFS_FILE_ACCESS_HINT_NONE);
 
       if (!state->file)
          return;
    }
 
+   if (!state->data)
+      state->data  = get_serialized_data(state->path, state->size) ;
+
    remaining       = MIN(state->size - state->written, SAVE_STATE_CHUNK);
-   written         = (int)intfstream_write(state->file,
+
+   if ( state->data )
+      written         = (int)intfstream_write(state->file,
          (uint8_t*)state->data + state->written, remaining);
+   else
+      written = 0;
 
    state->written += written;
 
@@ -585,7 +622,7 @@ static void task_save_handler(retro_task_t *task)
 
    if (task_get_cancelled(task) || written != remaining)
    {
-      char err[256];
+      char err[8192];
 
       err[0] = '\0';
 
@@ -600,7 +637,9 @@ static void task_save_handler(retro_task_t *task)
                   "RAM");
       }
       else
-         snprintf(err, sizeof(err), "%s %s", msg_hash_to_str(MSG_FAILED_TO_SAVE_STATE_TO), state->path);
+         snprintf(err, sizeof(err),
+               "%s %s",
+               msg_hash_to_str(MSG_FAILED_TO_SAVE_STATE_TO), state->path);
 
       task_set_error(task, strdup(err));
       task_save_handler_finished(task, state);
@@ -779,12 +818,12 @@ static void task_load_handler(retro_task_t *task)
    {
       if (state->autoload)
       {
-         char *msg = (char*)malloc(1024 * sizeof(char));
+         char *msg = (char*)malloc(8192 * sizeof(char));
 
          msg[0] = '\0';
 
          snprintf(msg,
-               1024 * sizeof(char),
+               8192 * sizeof(char),
                "%s \"%s\" %s.",
                msg_hash_to_str(MSG_AUTOLOADING_SAVESTATE_FROM),
                state->path,
@@ -803,30 +842,26 @@ static void task_load_handler(retro_task_t *task)
 
    if (state->bytes_read == state->size)
    {
-      char *msg = (char*)malloc(1024 * sizeof(char));
+      size_t sizeof_msg = 8192;
+      char         *msg = (char*)malloc(sizeof_msg * sizeof(char));
 
-      msg[0] = '\0';
+      msg[0]            = '\0';
 
       task_free_title(task);
 
       if (state->autoload)
-      {
-         snprintf(msg,
-               1024 * sizeof(char),
+         snprintf(msg, sizeof_msg,
                "%s \"%s\" %s.",
                msg_hash_to_str(MSG_AUTOLOADING_SAVESTATE_FROM),
                state->path,
                msg_hash_to_str(MSG_SUCCEEDED));
-      }
       else
       {
          if (state->state_slot < 0)
             strlcpy(msg, msg_hash_to_str(MSG_LOADED_STATE_FROM_SLOT_AUTO),
-                  1024 * sizeof(char)
-                  );
+                 sizeof_msg);
          else
-            snprintf(msg,
-                  1024 * sizeof(char),
+            snprintf(msg, sizeof_msg,
                   msg_hash_to_str(MSG_LOADED_STATE_FROM_SLOT),
                   state->state_slot);
 
@@ -1009,7 +1044,7 @@ static void save_state_cb(void *task_data,
    char               *path = strdup(state->path);
 
    if (state->thumbnail_enable)
-      take_screenshot(path, true, state->has_valid_framebuffer);
+      take_screenshot(path, true, state->has_valid_framebuffer, false, true);
 
    free(path);
 }
@@ -1143,85 +1178,89 @@ error:
  **/
 bool content_save_state(const char *path, bool save_to_disk, bool autosave)
 {
-   retro_ctx_serialize_info_t serial_info;
    retro_ctx_size_info_t info;
-   bool ret    = false;
    void *data  = NULL;
 
    core_serialize_size(&info);
 
-   RARCH_LOG("%s: \"%s\".\n",
-         msg_hash_to_str(MSG_SAVING_STATE),
-         path);
-
    if (info.size == 0)
       return false;
 
-   data = malloc(info.size);
-
-   if (!data)
-      return false;
-
-   RARCH_LOG("%s: %d %s.\n",
-         msg_hash_to_str(MSG_STATE_SIZE),
-         (int)info.size,
-         msg_hash_to_str(MSG_BYTES));
-
-   serial_info.data = data;
-   serial_info.size = info.size;
-   ret              = core_serialize(&serial_info);
-
-   if (ret)
+   if ( !save_state_in_background )
    {
-      if (save_to_disk)
-      {
-         if (filestream_exists(path) && !autosave)
-         {
-            /* Before overwritting the savestate file, load it into a buffer
-            to allow undo_save_state() to work */
-            /* TODO/FIXME - Use msg_hash_to_str here */
-            RARCH_LOG("%s ...\n",
-                  msg_hash_to_str(MSG_FILE_ALREADY_EXISTS_SAVING_TO_BACKUP_BUFFER));
+      RARCH_LOG("%s: \"%s\".\n",
+            msg_hash_to_str(MSG_SAVING_STATE),
+            path);
 
-            task_push_load_and_save_state(path, data, info.size, true, autosave);
-         }
-         else
-            task_push_save_state(path, data, info.size, autosave);
+      data = get_serialized_data(path, info.size) ;
+
+
+      if (!data)
+      {
+         RARCH_ERR("%s \"%s\".\n",
+               msg_hash_to_str(MSG_FAILED_TO_SAVE_STATE_TO),
+               path);
+         return false;
+      }
+
+      RARCH_LOG("%s: %d %s.\n",
+            msg_hash_to_str(MSG_STATE_SIZE),
+            (int)info.size,
+            msg_hash_to_str(MSG_BYTES));
+
+   }
+
+   if (save_to_disk)
+   {
+      if (filestream_exists(path) && !autosave)
+      {
+         /* Before overwritting the savestate file, load it into a buffer
+         to allow undo_save_state() to work */
+         /* TODO/FIXME - Use msg_hash_to_str here */
+         RARCH_LOG("%s ...\n",
+               msg_hash_to_str(MSG_FILE_ALREADY_EXISTS_SAVING_TO_BACKUP_BUFFER));
+
+         task_push_load_and_save_state(path, data, info.size, true, autosave);
       }
       else
-      {
-         /* save_to_disk is false, which means we are saving the state
-         in undo_load_buf to allow content_undo_load_state() to restore it */
-
-         /* If we were holding onto an old state already, clean it up first */
-         if (undo_load_buf.data)
-         {
-            free(undo_load_buf.data);
-            undo_load_buf.data = NULL;
-         }
-
-         undo_load_buf.data = malloc(info.size);
-         if (!undo_load_buf.data)
-         {
-            free(data);
-            return false;
-         }
-
-         memcpy(undo_load_buf.data, data, info.size);
-         free(data);
-         undo_load_buf.size = info.size;
-         strlcpy(undo_load_buf.path, path, sizeof(undo_load_buf.path));
-      }
+         task_push_save_state(path, data, info.size, autosave);
    }
    else
    {
+      if ( data == NULL )
+         data = get_serialized_data(path, info.size) ;
+
+      if ( data == NULL )
+      {
+         RARCH_ERR("%s \"%s\".\n",
+               msg_hash_to_str(MSG_FAILED_TO_SAVE_STATE_TO),
+               path);
+         return false ;
+      }
+      /* save_to_disk is false, which means we are saving the state
+      in undo_load_buf to allow content_undo_load_state() to restore it */
+
+      /* If we were holding onto an old state already, clean it up first */
+      if (undo_load_buf.data)
+      {
+         free(undo_load_buf.data);
+         undo_load_buf.data = NULL;
+      }
+
+      undo_load_buf.data = malloc(info.size);
+      if (!undo_load_buf.data)
+      {
+         free(data);
+         return false;
+      }
+
+      memcpy(undo_load_buf.data, data, info.size);
       free(data);
-      RARCH_ERR("%s \"%s\".\n",
-            msg_hash_to_str(MSG_FAILED_TO_SAVE_STATE_TO),
-            path);
+      undo_load_buf.size = info.size;
+      strlcpy(undo_load_buf.path, path, sizeof(undo_load_buf.path));
    }
 
-   return ret;
+   return true;
 }
 
 /**
@@ -1482,6 +1521,7 @@ bool event_save_files(void)
 {
    unsigned i;
 
+   cheat_manager_save_game_specific_cheats() ;
    if (!task_save_files ||
          !rarch_ctl(RARCH_CTL_IS_SRAM_USED, NULL))
       return false;
@@ -1543,4 +1583,9 @@ void path_init_savefile_new(void)
 void *savefile_ptr_get(void)
 {
    return task_save_files;
+}
+
+void set_save_state_in_background(bool state)
+{
+   save_state_in_background = state ;
 }

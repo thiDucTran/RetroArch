@@ -205,7 +205,7 @@ static int action_start_cheat_num_passes(unsigned type, const char *label)
    {
       bool refresh                = false;
       menu_entries_ctl(MENU_ENTRIES_CTL_SET_REFRESH, &refresh);
-      cheat_manager_realloc(0);
+      cheat_manager_realloc(0, CHEAT_HANDLER_TYPE_EMU);
    }
 
    return 0;
@@ -283,7 +283,7 @@ static int action_start_video_resolution(unsigned type, const char *label)
 
 static int action_start_lookup_setting(unsigned type, const char *label)
 {
-   return menu_setting_set(type, label, MENU_ACTION_START, false);
+   return menu_setting_set(type, MENU_ACTION_START, false);
 }
 
 static int menu_cbs_init_bind_start_compare_label(menu_file_list_cbs_t *cbs)
