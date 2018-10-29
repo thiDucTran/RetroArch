@@ -683,6 +683,7 @@ static void setting_get_string_representation_uint_materialui_menu_color_theme(
 }
 #endif
 
+#ifdef HAVE_XMB
 static void setting_get_string_representation_uint_xmb_menu_color_theme(
       rarch_setting_t *setting,
       char *s, size_t len)
@@ -766,6 +767,38 @@ static void setting_get_string_representation_uint_xmb_menu_color_theme(
          break;
    }
 }
+#endif
+
+
+
+#ifdef HAVE_OZONE
+static void setting_get_string_representation_uint_ozone_menu_color_theme(
+      rarch_setting_t *setting,
+      char *s, size_t len)
+{
+   settings_t      *settings = config_get_ptr();
+   if (!setting)
+      return;
+
+   if (settings->bools.menu_preferred_system_color_theme_set)
+         strlcpy(s, "System default", len);
+
+   switch (*setting->value.target.unsigned_integer)
+   {
+      case 1:
+         strlcpy(s,
+               msg_hash_to_str(
+                  MENU_ENUM_LABEL_VALUE_OZONE_COLOR_THEME_BASIC_BLACK), len);
+         break;
+      case 0:
+      default:
+         strlcpy(s,
+               msg_hash_to_str(
+                  MENU_ENUM_LABEL_VALUE_OZONE_COLOR_THEME_BASIC_WHITE), len);
+         break;
+   }
+}
+#endif
 
 #ifdef HAVE_SHADERPIPELINE
 static void setting_get_string_representation_uint_xmb_shader_pipeline(
@@ -3530,7 +3563,7 @@ static bool setting_append_list(
                   parent_group);
          }
 
-         if (string_is_not_equal(settings->arrays.menu_driver, "xmb"))
+         if (string_is_not_equal(settings->arrays.menu_driver, "xmb") && string_is_not_equal(settings->arrays.menu_driver, "ozone"))
          {
             CONFIG_ACTION(
                   list, list_info,
@@ -7616,7 +7649,7 @@ static bool setting_append_list(
                general_read_handler,
                SD_FLAG_NONE);
 
-         if (string_is_equal(settings->arrays.menu_driver, "xmb"))
+         if (string_is_equal(settings->arrays.menu_driver, "xmb") || string_is_equal(settings->arrays.menu_driver, "ozone"))
          {
             CONFIG_BOOL(
                   list, list_info,
@@ -7887,6 +7920,24 @@ static bool setting_append_list(
             menu_settings_list_current_add_range(list, list_info, 0, XMB_THEME_LAST-1, 1, true, true);
        }
 #endif
+         if (string_is_equal(settings->arrays.menu_driver, "ozone"))
+         {
+            CONFIG_BOOL(
+                  list, list_info,
+                  &settings->bools.menu_use_preferred_system_color_theme,
+                  MENU_ENUM_LABEL_MENU_USE_PREFERRED_SYSTEM_COLOR_THEME,
+                  MENU_ENUM_LABEL_VALUE_MENU_USE_PREFERRED_SYSTEM_COLOR_THEME,
+                  menu_use_preferred_system_color_theme,
+                  MENU_ENUM_LABEL_VALUE_OFF,
+                  MENU_ENUM_LABEL_VALUE_ON,
+                  &group_info,
+                  &subgroup_info,
+                  parent_group,
+                  general_write_handler,
+                  general_read_handler,
+                  SD_FLAG_NONE);
+         }
+
             CONFIG_BOOL(
                   list, list_info,
                   &settings->bools.menu_show_load_core,
@@ -8055,8 +8106,8 @@ static bool setting_append_list(
                   SD_FLAG_NONE);
 #endif
 
-#ifdef HAVE_XMB
-         if (string_is_equal(settings->arrays.menu_driver, "xmb"))
+#if defined(HAVE_XMB) || defined(HAVE_OZONE)
+         if (string_is_equal(settings->arrays.menu_driver, "xmb") || string_is_equal(settings->arrays.menu_driver, "ozone"))
          {
             CONFIG_BOOL(
                   list, list_info,
@@ -8287,6 +8338,27 @@ static bool setting_append_list(
          }
 #endif
 
+#ifdef HAVE_OZONE
+         if (string_is_equal(settings->arrays.menu_driver, "ozone"))
+         {
+            CONFIG_UINT(
+                  list, list_info,
+                  &settings->uints.menu_ozone_color_theme,
+                  MENU_ENUM_LABEL_OZONE_MENU_COLOR_THEME,
+                  MENU_ENUM_LABEL_VALUE_OZONE_MENU_COLOR_THEME,
+                  0,
+                  &group_info,
+                  &subgroup_info,
+                  parent_group,
+                  general_write_handler,
+                  general_read_handler);
+            (*list)[list_info->index - 1].action_ok = &setting_action_ok_uint;
+            (*list)[list_info->index - 1].get_string_representation =
+               &setting_get_string_representation_uint_ozone_menu_color_theme;
+            menu_settings_list_current_add_range(list, list_info, 0, 1, 1, true, true);
+         }
+#endif
+
          CONFIG_BOOL(
                list, list_info,
                &settings->bools.menu_show_start_screen,
@@ -8302,7 +8374,7 @@ static bool setting_append_list(
                general_read_handler,
                SD_FLAG_ADVANCED);
 
-         if (string_is_equal(settings->arrays.menu_driver, "xmb"))
+         if (string_is_equal(settings->arrays.menu_driver, "xmb") || string_is_equal(settings->arrays.menu_driver, "ozone"))
          {
             CONFIG_UINT(
                   list, list_info,
@@ -9040,7 +9112,7 @@ static bool setting_append_list(
                SD_FLAG_NONE
                );
 
-         if (string_is_equal(settings->arrays.menu_driver, "xmb"))
+         if (string_is_equal(settings->arrays.menu_driver, "xmb") || string_is_equal(settings->arrays.menu_driver, "ozone"))
             CONFIG_BOOL(
                   list, list_info,
                   &settings->bools.cheevos_badges_enable,

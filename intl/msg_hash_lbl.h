@@ -643,6 +643,8 @@ MSG_HASH(MENU_ENUM_LABEL_MAIN_MENU,
       "main_menu")
 MSG_HASH(MENU_ENUM_LABEL_MANAGEMENT,
       "database_settings")
+MSG_HASH(MENU_ENUM_LABEL_OZONE_MENU_COLOR_THEME,
+      "ozone_menu_color_theme")
 MSG_HASH(MENU_ENUM_LABEL_MATERIALUI_MENU_COLOR_THEME,
       "materialui_menu_color_theme")
 MSG_HASH(MENU_ENUM_LABEL_MATERIALUI_MENU_FOOTER_OPACITY,
@@ -1723,3 +1725,5 @@ MSG_HASH(MENU_ENUM_LABEL_STREAMING_TITLE,
       "streaming_title")
 MSG_HASH(MENU_ENUM_LABEL_RESET_TO_DEFAULT_CONFIG,
       "reset_to_default_config")
+MSG_HASH(MENU_ENUM_LABEL_MENU_USE_PREFERRED_SYSTEM_COLOR_THEME,
+      "menu_use_preferred_system_color_theme")
