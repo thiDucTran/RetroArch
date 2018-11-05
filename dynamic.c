@@ -54,7 +54,6 @@
 #include "camera/camera_driver.h"
 #include "location/location_driver.h"
 #include "record/record_driver.h"
-#include "core.h"
 #include "driver.h"
 #include "performance_counters.h"
 #include "gfx/video_driver.h"
@@ -62,13 +61,11 @@
 #include "midi/midi_driver.h"
 
 #include "cores/internal_cores.h"
-#include "frontend/frontend_driver.h"
 #include "content.h"
 #include "dirs.h"
 #include "paths.h"
 #include "retroarch.h"
 #include "configuration.h"
-#include "msg_hash.h"
 #include "verbosity.h"
 #include "tasks/tasks_internal.h"
 
@@ -393,7 +390,7 @@ bool libretro_get_system_info(const char *path,
             dummy_info.valid_extensions, sizeof(current_valid_extensions));
 
    info->library_name     = current_library_name;
-   info->library_version  = current_library_name;
+   info->library_version  = current_library_version;
    info->valid_extensions = current_valid_extensions;
 
 #ifdef HAVE_DYNAMIC

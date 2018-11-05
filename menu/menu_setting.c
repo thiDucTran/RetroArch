@@ -1656,23 +1656,23 @@ static void setting_get_string_representation_uint_audio_resampler_quality(
                len);
          break;
       case RESAMPLER_QUALITY_LOWEST:
-         strlcpy(s, "Lowest",
+         strlcpy(s, msg_hash_to_str(MSG_RESAMPLER_QUALITY_LOWEST),
                len);
          break;
       case RESAMPLER_QUALITY_LOWER:
-         strlcpy(s, "Lower",
+         strlcpy(s, msg_hash_to_str(MSG_RESAMPLER_QUALITY_LOWER),
                len);
          break;
       case RESAMPLER_QUALITY_HIGHER:
-         strlcpy(s, "Higher",
+         strlcpy(s, msg_hash_to_str(MSG_RESAMPLER_QUALITY_HIGHER),
                len);
          break;
       case RESAMPLER_QUALITY_HIGHEST:
-         strlcpy(s, "Highest",
+         strlcpy(s, msg_hash_to_str(MSG_RESAMPLER_QUALITY_HIGHEST),
                len);
          break;
       case RESAMPLER_QUALITY_NORMAL:
-         strlcpy(s, "Normal",
+         strlcpy(s, msg_hash_to_str(MSG_RESAMPLER_QUALITY_NORMAL),
                len);
          break;
    }
@@ -3901,14 +3901,17 @@ static bool setting_append_list(
                &subgroup_info,
                parent_group);
 
-         CONFIG_ACTION(
-               list, list_info,
-               MENU_ENUM_LABEL_RECORDING_SETTINGS,
-               MENU_ENUM_LABEL_VALUE_RECORDING_SETTINGS,
-               &group_info,
-               &subgroup_info,
-               parent_group);
-         settings_data_list_current_add_flags(list, list_info, SD_FLAG_LAKKA_ADVANCED);
+         if (string_is_not_equal(settings->arrays.record_driver, "null"))
+         {
+            CONFIG_ACTION(
+                  list, list_info,
+                  MENU_ENUM_LABEL_RECORDING_SETTINGS,
+                  MENU_ENUM_LABEL_VALUE_RECORDING_SETTINGS,
+                  &group_info,
+                  &subgroup_info,
+                  parent_group);
+            settings_data_list_current_add_flags(list, list_info, SD_FLAG_LAKKA_ADVANCED);
+         }
 
          CONFIG_ACTION(
                list, list_info,
@@ -4074,14 +4077,17 @@ static bool setting_append_list(
                &subgroup_info,
                parent_group);
 
-         CONFIG_ACTION(
-               list, list_info,
-               MENU_ENUM_LABEL_MIDI_SETTINGS,
-               MENU_ENUM_LABEL_VALUE_MIDI_SETTINGS,
-               &group_info,
-               &subgroup_info,
-               parent_group);
-         settings_data_list_current_add_flags(list, list_info, SD_FLAG_LAKKA_ADVANCED);
+         if (string_is_not_equal(settings->arrays.midi_driver, "null"))
+         {
+            CONFIG_ACTION(
+                  list, list_info,
+                  MENU_ENUM_LABEL_MIDI_SETTINGS,
+                  MENU_ENUM_LABEL_VALUE_MIDI_SETTINGS,
+                  &group_info,
+                  &subgroup_info,
+                  parent_group);
+            settings_data_list_current_add_flags(list, list_info, SD_FLAG_LAKKA_ADVANCED);
+         }
 
          for (user = 0; user < MAX_USERS; user++)
             setting_append_list_input_player_options(list, list_info, parent_group, user);
