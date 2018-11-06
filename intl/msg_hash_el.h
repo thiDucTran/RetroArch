@@ -7710,3 +7710,19 @@ MSG_HASH(MSG_RESAMPLER_QUALITY_HIGHER,
       "Higher")
 MSG_HASH(MSG_RESAMPLER_QUALITY_HIGHEST,
       "Highest")
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_NO_MUSIC_AVAILABLE,
+    "No music available."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_NO_VIDEOS_AVAILABLE,
+    "No videos available."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_NO_IMAGES_AVAILABLE,
+    "No images available."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_NO_FAVORITES_AVAILABLE,
+    "No favorites available."
+    )

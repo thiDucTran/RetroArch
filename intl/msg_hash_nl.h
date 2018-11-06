@@ -2123,7 +2123,7 @@ MSG_HASH(MSG_SKIPPING_SRAM_LOAD,
 MSG_HASH(MSG_SLOW_MOTION,
       "Slow motion.")
 MSG_HASH(MSG_FAST_FORWARD,
-      "Snel vooruit.")
+      "Vooruitspoelen.")
 MSG_HASH(MSG_SLOW_MOTION_REWIND,
       "Slow motion rewind.")
 MSG_HASH(MSG_SRAM_WILL_NOT_BE_SAVED,
@@ -3363,3 +3363,19 @@ MSG_HASH(MSG_RESAMPLER_QUALITY_HIGHER,
       "Hoger")
 MSG_HASH(MSG_RESAMPLER_QUALITY_HIGHEST,
       "Hoogst")
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_NO_MUSIC_AVAILABLE,
+    "Geen muziek beschikbaar."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_NO_VIDEOS_AVAILABLE,
+    "Geen videos beschikbaar."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_NO_IMAGES_AVAILABLE,
+    "Geen afbeeldingen beschikbaar."
+    )
+MSG_HASH(
+    MENU_ENUM_LABEL_VALUE_NO_FAVORITES_AVAILABLE,
+    "Geen favorieten beschikbaar."
+    )
